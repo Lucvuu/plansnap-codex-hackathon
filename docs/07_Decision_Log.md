@@ -1,4 +1,4 @@
-# NHẬT KÝ QUYẾT ĐỊNH DỰ ÁN (DECISION LOG / ADR)
+﻿# NHẬT KÝ QUYẾT ĐỊNH DỰ ÁN (DECISION LOG / ADR)
 **Các quyết định kiến trúc, công nghệ và chiến lược sản phẩm then chốt**
 
 | | |
@@ -47,14 +47,14 @@
 
 ---
 
-### DEC-03: Chọn Google Gemini 1.5 Flash làm Vision LLM chính
+### DEC-03: Chọn Google Gemini 2.5 Flash làm Vision LLM chính
 * **Ngày quyết định:** 12/11/2026
 * **Người đề xuất:** AI Engineer
 * **Trạng thái:** **Đã chốt (Dự phòng Claude 3.5 Haiku)**
 * **Bối cảnh:**
   - Màn demo trên sân khấu đòi hỏi thời gian phản hồi toàn luồng (Latency) phải dưới 8–10 giây. Nếu vượt quá 15 giây, BGK sẽ đánh giá ứng dụng chạy không ổn định (nguy cơ rơi xuống mức 20 điểm ở Tiêu chí 1).
 * **Quyết định:**
-  - Chọn **Gemini 1.5 Flash** (Google AI Studio) vì:
+  - Chọn **Gemini 2.5 Flash** (Google AI Studio) vì:
     - Khả năng xử lý đa ảnh (Multi-image prompt) vượt trội với context window lớn.
     - Tốc độ sinh token (TTFT và Throughput) nhanh nhất trong các model thị giác hiện nay.
     - Khả năng đọc hiểu tiếng Việt và chữ viết tay tốt.

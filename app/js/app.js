@@ -296,8 +296,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      // Append or replace if user wants — keeping existing uncompleted tasks + adding new ones
-      currentTasks = [...extracted, ...currentTasks];
+      // Tránh trùng lặp nếu quét lại cùng một ảnh/preset
+      const existingKeys = new Set(currentTasks.map(t => `${t.title}::${t.source_quote}`));
+      const uniqueNew = extracted.filter(t => !existingKeys.has(`${t.title}::${t.source_quote}`));
+      currentTasks = [...uniqueNew, ...currentTasks];
       await window.storage.saveTasks(currentTasks);
 
       progressBar.style.width = '100%';
@@ -530,7 +532,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const now = new Date();
-    const filteredEvents = scheduledEvents.filter(ev => {
+    const sortedEvents = [...scheduledEvents].sort((a, b) => new Date(a.start) - new Date(b.start));
+    const filteredEvents = sortedEvents.filter(ev => {
       if (currentFilter === 'all') return true;
       const evDate = new Date(ev.start);
       if (currentFilter === 'today') {
@@ -566,9 +569,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const timeRange = `${pad(start.getHours())}:${pad(start.getMinutes())} – ${pad(end.getHours())}:${pad(end.getMinutes())}`;
       const deadlineDate = ev.deadline_iso ? new Date(ev.deadline_iso) : null;
       const hoursBeforeDeadline = deadlineDate ? Math.round((deadlineDate - end) / 3600000) : null;
-      const bufferLabel = hoursBeforeDeadline !== null
-        ? (hoursBeforeDeadline >= 3 ? `Còn ${hoursBeforeDeadline}h trước hạn` : `Sát hạn (${Math.max(0, hoursBeforeDeadline)}h)`)
-        : '';
+      let bufferLabel = '';
+      if (hoursBeforeDeadline !== null) {
+        if (ev.isPastDeadline || hoursBeforeDeadline < 0) {
+          bufferLabel = 'Cảnh báo: Không đủ giờ rảnh trước hạn';
+        } else if (hoursBeforeDeadline < 3) {
+          bufferLabel = `Sát hạn (${hoursBeforeDeadline}h)`;
+        } else {
+          bufferLabel = `Còn ${hoursBeforeDeadline}h trước hạn`;
+        }
+      }
 
       const gcalUrl = window.ICalExporter.getGoogleCalendarLink(ev);
 

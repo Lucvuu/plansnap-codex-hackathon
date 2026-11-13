@@ -1,4 +1,4 @@
-# BỘ CÂU HỎI & TRẢ LỜI CHẤT VẤN CỦA BAN GIÁM KHẢO (JUDGE Q&A DEFENSE BIBLE)
+﻿# BỘ CÂU HỎI & TRẢ LỜI CHẤT VẤN CỦA BAN GIÁM KHẢO (JUDGE Q&A DEFENSE BIBLE)
 **Kịch bản phòng thủ và phản biện xuất sắc trong 3–5 phút Q&A tại Hackathon**
 
 | | |
@@ -27,7 +27,7 @@
   1. **Tem thời gian tương đối:** Khi giảng viên nhắn 'thứ 6 tuần sau nộp', OCR chỉ đọc được chữ 'thứ 6 tuần sau', nhưng không biết là ngày nào. Vision LLM có khả năng liên kết tem thời gian gửi tin nhắn Zalo (ví dụ: 'Hôm qua lúc 16:45') với câu nói để suy luận ra ngày tuyệt đối.
   2. **Cấu trúc lộn xộn:** Slide bài giảng, ảnh bảng trắng họp nhóm và chữ viết tay không có định dạng cố định để viết Regex.
   3. **Phát hiện sự mơ hồ:** Chỉ có LLM mới đánh giá được mức độ tin cậy để kích hoạt thẻ hỏi lại 1-chạm (Human-in-the-Loop) khi deadline không rõ ràng.  
-  *Về chi phí:* Với Gemini 1.5 Flash, chi phí chỉ khoảng $0.0003 cho 3 ảnh (chưa tới 10 đồng VNĐ), hoàn toàn khả thi về mặt kinh tế."*
+  *Về chi phí:* Với Gemini 2.5 Flash, chi phí chỉ khoảng $0.0003 cho 3 ảnh (chưa tới 10 đồng VNĐ), hoàn toàn khả thi về mặt kinh tế."*
 
 ---
 

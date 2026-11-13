@@ -25,3 +25,4 @@ python serve.py
 ```
 
 Sau đó mở `http://localhost:8080/` trên máy tính hoặc truy cập địa chỉ LAN hiển thị trên terminal bằng điện thoại.
+

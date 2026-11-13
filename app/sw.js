@@ -1,5 +1,5 @@
-// PlanSnap Service Worker - Offline Persistence & Fast Caching
-const CACHE_NAME = 'plansnap-v1.0.0';
+// PlanSnap Service Worker - Network-First App Shell with Offline Fallback
+const CACHE_NAME = 'plansnap-v2.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -15,42 +15,38 @@ const ASSETS_TO_CACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell');
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(
-        keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then((keyList) =>
+      Promise.all(
+        keyList.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null))
+      )
+    )
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass through external API calls (e.g. Google Gemini API)
-  if (event.request.url.includes('generativelanguage.googleapis.com')) {
-    return;
-  }
+  if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('generativelanguage.googleapis.com')) return;
 
+  // Network-first so updates deploy cleanly, with offline cache fallback
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    }).catch(() => {
-      return caches.match('./index.html');
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match('./index.html'))
+      )
   );
 });
-

@@ -1,4 +1,4 @@
-# KỊCH BẢN DEMO TRÊN ĐIỆN THOẠI THẬT: PlanSnap
+﻿# KỊCH BẢN DEMO TRÊN ĐIỆN THOẠI THẬT: PlanSnap
 **Kịch bản thao tác thực tế từng giây – Nhắm trọn 40/40 điểm Tiêu chí 1**
 
 | | |

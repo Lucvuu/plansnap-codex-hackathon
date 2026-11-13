@@ -1,4 +1,4 @@
-# THANG ĐIỂM CHÍNH THỨC CỦA BTC (nguyên văn)
+﻿# THANG ĐIỂM CHÍNH THỨC CỦA BTC (nguyên văn)
 
 Cách tính điểm: BGK chọn một mức điểm cho mỗi tiêu chí; tổng điểm tối đa là 100. Điểm dựa trên bằng chứng thực tế, không dựa vào slide hay độ tự tin khi trình bày.
 

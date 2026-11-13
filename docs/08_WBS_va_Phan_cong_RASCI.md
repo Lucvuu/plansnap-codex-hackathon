@@ -1,4 +1,4 @@
-# CẤU TRÚC PHÂN RÃ CÔNG VIỆC (WBS) & MA TRẬN PHÂN CÔNG TRÁCH NHIỆM (RASCI)
+﻿# CẤU TRÚC PHÂN RÃ CÔNG VIỆC (WBS) & MA TRẬN PHÂN CÔNG TRÁCH NHIỆM (RASCI)
 **Phân bổ nguồn lực và quản lý tiến độ chi tiết từng giờ hướng tới ngày thi 14/11/2026**
 
 | | |
@@ -51,7 +51,7 @@
 | 03.1 | Dựng PWA Shell Standalone + Service Worker | 18h00 12/11 | PWA cài được ra màn hình chính, ẩn URL | I | **A/R** | I | S | I |
 | 03.2 | Module IndexedDB lưu trữ bền vững (Zero Data Loss) | 21h00 12/11 | Thao tác lưu/khôi phục dữ liệu tức thì | I | **A/R** | I | S | I |
 | 03.3 | Module nén ảnh Client (Canvas Resize max 1600px) | 22h00 12/11 | Giảm 95% dung lượng ảnh trước khi upload | I | S | I | **A/R** | I |
-| 03.4 | Kết nối Vision LLM API (Gemini 1.5 Flash) | 12h00 13/11 | Endpoint API trích xuất JSON Structured | I | C | **A/R** | S | I |
+| 03.4 | Kết nối Vision LLM API (Gemini 2.5 Flash) | 12h00 13/11 | Endpoint API trích xuất JSON Structured | I | C | **A/R** | S | I |
 | 03.5 | Thuật toán xếp lịch xác định (Code thuần EDF) | 15h00 13/11 | Thuật toán xếp khung rảnh chừa buffer | C | **A/R** | C | S | I |
 | 03.6 | UI duyệt việc + Thẻ hỏi lại mốc mơ hồ 1-chạm | 17h00 13/11 | Màn hình tương tác mobile mượt mà | I | S | C | **A/R** | I |
 | 03.7 | Module xuất lịch iCalendar (`.ics`) | 19h00 13/11 | Tệp `.ics` mở trực tiếp trong app Lịch | I | C | I | **A/R** | I |

@@ -1,4 +1,4 @@
-# KIẾN TRÚC AGENT & THIẾT KẾ AI: PlanSnap
+﻿# KIẾN TRÚC AGENT & THIẾT KẾ AI: PlanSnap
 **Hệ thống AI Agent bóc tách đa phương thức & Bộ điều phối lịch trình xác định**
 
 | | |
@@ -26,7 +26,7 @@ flowchart TD
     CLIENT --> API[Serverless Proxy / Vision Controller]
     
     subgraph AGENT_BRAIN["Khối AI Agent (Vision Multi-modal)"]
-        API --> V_LLM[Vision LLM: Gemini 1.5 Flash / Claude Haiku]
+        API --> V_LLM[Vision LLM: Gemini 2.5 Flash / Claude Haiku]
         V_LLM --> JSON_SCHEMA{Kiểm tra Structured JSON Schema}
         JSON_SCHEMA -->|Hợp lệ| TASKS[Danh sách Task + Source Quote]
         JSON_SCHEMA -->|Lỗi Schema| RETRY[Auto-retry 1 lần với Temperature 0.0]
@@ -165,7 +165,7 @@ Bắt buộc trả về đúng định dạng JSON Schema của Structured Outpu
    - Trước khi gửi đi, PWA dùng HTML5 Canvas nén ảnh về cạnh dài tối đa 1600px, định dạng `image/jpeg` với chất lượng 0.8.
    - Dung lượng giảm 95% xuống còn khoảng 200–350KB. Thời gian upload qua 4G giảm từ 8 giây xuống còn 0.8 giây.
 2. **Chọn Model phù hợp:**
-   - Ưu tiên 1: **Google Gemini 1.5 Flash** (Tốc độ đọc thị giác cực nhanh, hỗ trợ đa ảnh xuất sắc, độ trễ ~2–4 giây cho 3 ảnh).
+   - Ưu tiên 1: **Google Gemini 2.5 Flash** (Tốc độ đọc thị giác cực nhanh, hỗ trợ đa ảnh xuất sắc, độ trễ ~2–4 giây cho 3 ảnh).
    - Ưu tiên 2: **Claude 3.5 Haiku** (Nếu Gemini bị rate-limit).
 3. **Cấu hình Model:**
    - `temperature: 0.0` (Bảo đảm tính xác định, tốc độ sinh token nhanh nhất và không hallucination).

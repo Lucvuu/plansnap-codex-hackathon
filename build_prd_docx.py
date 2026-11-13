@@ -1,4 +1,4 @@
-# build_prd_docx.py
+﻿# build_prd_docx.py
 # Python script to generate a professional, executive-level PRD Word Document (.docx)
 # for PlanSnap (Capture -> Plan) - Team technoComplex (Codex Hackathon Hanoi)
 
@@ -331,7 +331,7 @@ def build_prd():
 
     rubric_data = [
         ["Tiêu chí chấm thi", "Mức điểm", "Điều kiện đạt điểm tối đa [BTC]", "Hiện thực hóa trong PlanSnap"],
-        ["1. Demo AI trên điện thoại thật", "40 điểm (Ưu tiên #1)", "Đóng hẳn rồi mở lại ứng dụng trên điện thoại thật; luồng AI chính chạy trực tiếp.", "PWA Standalone cài ra màn hình chính, khôi phục tức thì qua IndexedDB; gọi Gemini 1.5 Flash live qua 4G; bóc tách chữ viết tay BGK tại chỗ."],
+        ["1. Demo AI trên điện thoại thật", "40 điểm (Ưu tiên #1)", "Đóng hẳn rồi mở lại ứng dụng trên điện thoại thật; luồng AI chính chạy trực tiếp.", "PWA Standalone cài ra màn hình chính, khôi phục tức thì qua IndexedDB; gọi Gemini 2.5 Flash live qua 4G; bóc tách chữ viết tay BGK tại chỗ."],
         ["2. Vấn đề thật của người dùng", "35 điểm (Ưu tiên #2)", "Nêu rõ người dùng và khó khăn họ gặp, có bằng chứng, đồng thời cho thấy AI giúp trực tiếp.", "Nghiên cứu 30 phỏng vấn sâu + 156 khảo sát; dataset 40 ảnh; benchmark nhanh gấp 9.7 lần; AI giải mã tem thời gian trong ảnh Zalo mà regex bó tay."],
         ["3. Khả năng mở rộng thị trường", "25 điểm (Ưu tiên #3)", "Giải thích rõ cách tiếp cận người dùng đầu tiên và mở rộng ra toàn cầu; đã có người dùng thực tế là lợi thế.", "Traction 42 sinh viên beta thật (218 tasks); kênh Lớp trưởng 0 đồng; mô hình Vision LLM đa ngôn ngữ sẵn sàng scale quốc tế."]
     ]
@@ -368,7 +368,7 @@ def build_prd():
     add_h2("4.1. Trong phạm vi Hackathon MVP (In-Scope)")
     add_bullet("PWA di động cài đặt ra màn hình chính, giao diện Standalone không thanh URL.", "Nền tảng: ");
     add_bullet("Nén ảnh đa luồng Canvas API (max 1600px, JPEG 0.8, giảm 90% dung lượng trong < 500ms).", "Xử lý ảnh: ");
-    add_bullet("Google Gemini 1.5 Flash Vision API với Structured Output JSON bắt buộc.", "Bộ não AI: ");
+    add_bullet("Google Gemini 2.5 Flash Vision API với Structured Output JSON bắt buộc.", "Bộ não AI: ");
     add_bullet("Mọi công việc bóc tách bắt buộc kèm câu trích nguồn gốc (source_quote) chống ảo giác.", "Đối chiếu nguồn: ");
     add_bullet("Thẻ tương tác màu vàng hỏi lại mốc mơ hồ 1-chạm (Human-in-the-Loop), không bắt gõ phím.", "Làm rõ thông tin: ");
     add_bullet("Thuật toán code thuần Earliest Deadline First (EDF), chừa buffer an toàn 3 tiếng trước hạn.", "Xếp lịch xác định: ");
@@ -436,7 +436,7 @@ def build_prd():
     add_h1("6. Kiến trúc hệ thống và Thiết kế AI Agent")
     add_h2("6.1. Triết lý thiết kế: Hybrid AI Agent (LLM + Code thuần)")
     add_body("Điểm yếu chết người của nhiều ứng dụng AI là để LLM tự tính toán và xếp lịch trình, dẫn đến lỗi ảo giác số học (Arithmetic Hallucination) và xung đột khung giờ. PlanSnap tách rời hai nhiệm vụ:")
-    add_bullet("Mô hình Gemini 1.5 Flash đóng vai trò 'Mắt thần' đọc ảnh, nhận diện tiếng Việt, trích xuất thực thể và phát hiện điểm mơ hồ.", "Khối Nhận thức (Vision LLM): ");
+    add_bullet("Mô hình Gemini 2.5 Flash đóng vai trò 'Mắt thần' đọc ảnh, nhận diện tiếng Việt, trích xuất thực thể và phát hiện điểm mơ hồ.", "Khối Nhận thức (Vision LLM): ");
     add_bullet("Thuật toán code thuần Earliest Deadline First (EDF) đóng vai trò 'Bộ điều phối' xếp lịch, bảo đảm 100% không va chạm, chừa buffer an toàn và thực thi trong dưới 5ms.", "Khối Điều phối (Deterministic Engine): ");
 
     add_h2("6.2. Hợp đồng dữ liệu chuẩn (Structured Output JSON Schema)")

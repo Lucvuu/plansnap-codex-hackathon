@@ -1,4 +1,4 @@
-# BỘ TÀI LIỆU DỰ ÁN HACKATHON: PlanSnap (Capture → Plan)
+﻿# BỘ TÀI LIỆU DỰ ÁN HACKATHON: PlanSnap (Capture → Plan)
 **Đội thi:** technoComplex  
 **Sự kiện:** Codex Community Hackathon – Hà Nội (Thứ Bảy, 14/11/2026)  
 **Trạng thái:** Hoàn thiện trọn bộ 12 tài liệu chuẩn mực quản trị & kỹ thuật (v2.0 Production)  

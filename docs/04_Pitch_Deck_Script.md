@@ -1,4 +1,4 @@
-# KỊCH BẢN THUYẾT TRÌNH & SLIDE PITCH DECK: PlanSnap
+﻿# KỊCH BẢN THUYẾT TRÌNH & SLIDE PITCH DECK: PlanSnap
 **Bố cục Slide & Lời thoại chi tiết – Tối ưu hóa 100/100 Điểm Ban Giám Khảo**
 
 | | |

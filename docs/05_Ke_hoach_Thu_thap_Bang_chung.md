@@ -1,4 +1,4 @@
-# KẾ HOẠCH HÀNH ĐỘNG THU THẬP BẰNG CHỨNG THỰC TẾ
+﻿# KẾ HOẠCH HÀNH ĐỘNG THU THẬP BẰNG CHỨNG THỰC TẾ
 **Chuyển đổi toàn bộ "Giả thuyết" thành "Bằng chứng thật" trước 23h59 ngày 13/11/2026**
 
 | | |

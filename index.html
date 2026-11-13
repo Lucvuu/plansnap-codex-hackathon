@@ -569,20 +569,20 @@
     <section id="view-phone" class="section-view">
       <div class="lan-card">
         <div class="qr-box">
-          <img src="./qr_code.png" alt="Mã QR mở PlanSnap trên điện thoại">
+          <img id="qr-img" src="./qr_code_public.png" alt="Mã QR mở PlanSnap trên điện thoại">
           <div class="qr-caption">Quét bằng camera điện thoại</div>
         </div>
         <div>
-          <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">Kiểm thử trên điện thoại thật qua Wi-Fi / Hotspot</h2>
-          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
-            Đảm bảo điện thoại và máy tính đang dùng chung một mạng Wi-Fi hoặc Hotspot, sau đó thực hiện:
+          <h2 id="phone-mode-title" style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">Cài đặt và thử trực tiếp trên điện thoại thật</h2>
+          <p id="phone-mode-desc" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+            Mở liên kết HTTPS công khai bằng 4G/Wi-Fi hoặc dùng mạng nội bộ khi thử cục bộ:
           </p>
           <div class="workflow-list" style="margin-bottom: 0;">
             <div class="workflow-step">
               <div class="step-index">1</div>
               <div>
                 <div class="step-title">Mở đường dẫn trên Safari (iOS) hoặc Chrome (Android)</div>
-                <div class="url-pill">http://10.252.218.201:8080/app/</div>
+                <div id="phone-url-pill" class="url-pill">https://lucvuu.github.io/plansnap-codex-hackathon/app/</div>
               </div>
             </div>
             <div class="workflow-step">
@@ -699,6 +699,16 @@
     document.getElementById('btn-mock-judge').addEventListener('click', () => sendToApp({ type: 'TRIGGER_JUDGE_PRESET' }));
     document.getElementById('btn-mock-swipekill').addEventListener('click', () => sendToApp({ type: 'SIMULATE_SWIPE_KILL' }));
     document.getElementById('btn-mock-export').addEventListener('click', () => sendToApp({ type: 'TRIGGER_EXPORT_ICS' }));
+
+    // Nếu chạy cục bộ (localhost/LAN), ưu tiên QR nội bộ nếu muốn thử offline không qua GitHub Pages
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      const urlPill = document.getElementById('phone-url-pill');
+      const qrImg = document.getElementById('qr-img');
+      if (urlPill && qrImg) {
+        qrImg.src = './qr_code.png';
+        urlPill.innerText = 'http://10.252.218.201:8080/app/ (hoặc bản HTTPS: https://lucvuu.github.io/plansnap-codex-hackathon/app/)';
+      }
+    }
   </script>
 
 </body>

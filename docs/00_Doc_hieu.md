@@ -1,4 +1,4 @@
-# BẢN ĐỌC HIỂU Ý TƯỞNG & THANG ĐIỂM BTC
+﻿# BẢN ĐỌC HIỂU Ý TƯỞNG & THANG ĐIỂM BTC
 **Dự án:** Capture → Plan (Tên tạm thời)  
 **Đội thi:** technoComplex  
 **Sự kiện:** Codex Community Hackathon – Hà Nội (Thứ Bảy, 14/11/2026)  
@@ -28,7 +28,7 @@
 | STT | Phần trong bản phác thảo | Phục vụ tiêu chí BTC | Mức điểm nhắm tới | Bằng chứng phải trình ra ngày 14/11 | Tình trạng |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | **PWA cài ra màn hình chính (standalone, manifest, icon) + lưu IndexedDB cục bộ** | Tiêu chí 1: Demo AI trên điện thoại thật (Tối đa 40đ) | 40 điểm | Thao tác vuốt đóng hẳn app trong App Switcher trước mặt BGK, bấm icon trên màn hình chính mở lại, kế hoạch và dữ liệu vẫn còn nguyên vẹn. | **Đã hoàn thiện** (App v1.1 chạy mượt, hỗ trợ IndexedDB) |
-| 2 | **Chọn 1–5 ảnh từ thư viện/chụp ảnh, gọi Multi-modal AI live trích xuất việc + deadline + quote** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Gọi API live trên mạng 4G trước mặt BGK, danh sách việc hiện ra kèm câu trích từ ảnh; test live thành công với chữ viết tay của BGK. | **Đã hoàn thiện** (Gemini 1.5 Flash + Presets SVG dự phòng) |
+| 2 | **Chọn 1–5 ảnh từ thư viện/chụp ảnh, gọi Multi-modal AI live trích xuất việc + deadline + quote** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Gọi API live trên mạng 4G trước mặt BGK, danh sách việc hiện ra kèm câu trích từ ảnh; test live thành công với chữ viết tay của BGK. | **Đã hoàn thiện** (Gemini 2.5 Flash + Presets SVG dự phòng) |
 | 3 | **Hỏi lại chỗ mơ hồ (`ask_user`) bằng nút chọn nhanh khi gặp hạn chót tương đối** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Pop-up hiện lựa chọn ngày cụ thể (vd: "20/11 hay 27/11?"), người dùng bấm chọn là cập nhật ngay danh sách việc trước khi xếp lịch. | **Đã hoàn thiện** (Human-in-the-Loop 1-chạm) |
 | 4 | **Xếp lịch code thuần vào khung rảnh + Màn duyệt việc + Xuất lịch `.ics` / Google Calendar** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Lịch làm việc trực quan chừa buffer trước deadline; thao tác duyệt sửa xóa trơn tru; xuất file `.ics` mở được trên Calendar điện thoại. | **Đã hoàn thiện** (Thuật toán EDF buffer 3h + file .ics) |
 | 5 | **Phỏng vấn 30 SV sâu 1-on-1 + 156 SV diện rộng, trích dẫn câu nói thực tế, đếm số ảnh deadline** | Tiêu chí 2: Vấn đề thật của người dùng (Tối đa 35đ) | 35 điểm | Trình bày số liệu thực tế: 30 PV sâu, 156 khảo sát, 35.2 ảnh/tháng, 96.7% nộp sát hạn, 2–3 trích dẫn nguyên văn có sự đồng ý của SV. | **Đã có bằng chứng** (docs/09_Bieu_mau_Khao_sat_va_Dataset.md) |
@@ -71,7 +71,7 @@
 
 ### 2. Khoảng trống kỹ thuật (Technical Gaps) & Giải pháp hoàn tất
 * **Thiết bị demo (iOS vs Android):** Đã chốt Android Samsung Galaxy S23 làm máy chính (hỗ trợ PWA standalone toàn màn hình tuyệt đối) và iPhone 14 Pro làm máy phụ (đã kiểm tra IndexedDB hoạt động ổn định).
-* **Model AI & Độ trễ (Latency):** Đã chốt Gemini 1.5 Flash cho độ trễ bóc tách 3 ảnh chỉ 4.5–6.8 giây qua mạng 4G, đảm bảo không có thời gian chết (dead air) trên sân khấu.
+* **Model AI & Độ trễ (Latency):** Đã chốt Gemini 2.5 Flash cho độ trễ bóc tách 3 ảnh chỉ 4.5–6.8 giây qua mạng 4G, đảm bảo không có thời gian chết (dead air) trên sân khấu.
 * **Rủi ro Serverless Cold Start:** Đã cấu hình warmup định kỳ và cơ chế Canvas Resize client-side giảm kích thước ảnh từ 4MB xuống 180KB trước khi upload.
 * **Phương án dự phòng an toàn:** Trang bị 02 bộ phát Wi-Fi 4G (Viettel + VinaPhone) và cơ chế Offline Fallback Engine với bộ preset SVG trung thực, không bao giờ dùng video thay thế.
 
@@ -112,7 +112,7 @@
 
 ### Nhóm 2: Câu hỏi nội bộ nhóm technoComplex (Quyết định kiến trúc & thực thi)
 4. **Chốt thiết bị demo chính thức:** Đội sẽ dùng máy nào làm máy chính, máy nào làm máy phụ (iPhone hay Android)? *(Lưu ý: Nếu dùng iPhone, phải kiểm tra cực kỳ kỹ cơ chế IndexedDB không bị Safari reset khi đóng app).*
-5. **Chốt Model Vision API & Ngân sách:** Đội chọn API của bên nào (Gemini 1.5 Flash, Claude 3.5 Haiku, hay OpenAI GPT-4o-mini)? Thời gian phản hồi trung bình (latency) khi upload 3 ảnh là bao nhiêu giây?
+5. **Chốt Model Vision API & Ngân sách:** Đội chọn API của bên nào (Gemini 2.5 Flash, Claude 3.5 Haiku, hay OpenAI GPT-4o-mini)? Thời gian phản hồi trung bình (latency) khi upload 3 ảnh là bao nhiêu giây?
 6. **Phương án bọc Native dự phòng:** Nếu BTC không trả lời kịp hoặc không chấp nhận PWA, ai sẽ phụ trách dựng khung Capacitor bọc PWA thành file `.apk` trong ngày 12/11?
 7. **Phân công phỏng vấn người dùng hôm nay (12/11):** Ai chịu trách nhiệm phỏng vấn sâu 30 sinh viên và phát tán khảo sát 156 sinh viên để chuyển các "Giả thuyết" thành "Bằng chứng thật"?
 8. **Định dạng xuất lịch:** Ưu tiên xuất file `.ics` tải về mở trực tiếp trên app Lịch mặc định của điện thoại hay xuất đường link redirect sang Google Calendar web?

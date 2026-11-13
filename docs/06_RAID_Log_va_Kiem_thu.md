@@ -1,4 +1,4 @@
-# BẢNG QUẢN TRỊ RỦI RO (RAID LOG) & KẾ HOẠCH KIỂM THỬ
+﻿# BẢNG QUẢN TRỊ RỦI RO (RAID LOG) & KẾ HOẠCH KIỂM THỬ
 **Bảo vệ tuyệt đối điểm số – Kiểm thử thực tế trên điện thoại thật**
 
 | | |
@@ -27,7 +27,7 @@
 ### 1.2. Assumptions (Các Giả định cần kiểm chứng)
 - **ASM-01:** Ban Giám khảo công nhận PWA chạy ở chế độ standalone từ màn hình chính là ứng dụng hợp lệ trên điện thoại thật (Đang chờ BTC xác nhận).
 - **ASM-02:** Hội trường thi đấu có sóng 4G của ít nhất một trong hai nhà mạng Viettel hoặc VinaPhone.
-- **ASM-03:** Mô hình Vision LLM (Gemini 1.5 Flash) duy trì thời gian phản hồi dưới 8 giây cho 3 ảnh gửi kèm.
+- **ASM-03:** Mô hình Vision LLM (Gemini 2.5 Flash) duy trì thời gian phản hồi dưới 8 giây cho 3 ảnh gửi kèm.
 
 ### 1.3. Issues (Các Vấn đề đang phát sinh cần xử lý ngay)
 - **ISS-01:** Chưa có thiết bị demo chính thức được cấu hình xong (Cần chốt điện thoại iPhone hay Android trước 18h00 ngày 12/11).

@@ -1,4 +1,4 @@
-# PRODUCT REQUIREMENTS DOCUMENT (PRD)
+﻿# PRODUCT REQUIREMENTS DOCUMENT (PRD)
 # DỰ ÁN: PLANSNAP (CAPTURE → PLAN)
 **Nền tảng AI Di động Biến Ảnh Chụp & Tin Nhắn Rải Rác Thành Kế Hoạch Cá Nhân Dưới 1 Phút**
 
@@ -13,7 +13,7 @@
 | **Chủ sở hữu sản phẩm (PM)** | Vũ Thế Lực (PM / Product Lead) |
 | **Trạng thái tài liệu** | **APPROVED & BASELINE FOR IMPLEMENTATION** |
 | **Nền tảng mục tiêu** | Mobile PWA Standalone (iOS Safari & Android Chrome) + Capacitor APK Fallback |
-| **Bộ não AI** | Multi-modal Vision LLM (Gemini 1.5 Flash) + Deterministic Scheduling Engine (Code thuần) |
+| **Bộ não AI** | Multi-modal Vision LLM (Gemini 2.5 Flash) + Deterministic Scheduling Engine (Code thuần) |
 | **Căn cứ pháp lý & Chuẩn mực** | [00_Thang_diem_BTC.md](file:///d:/Codex%20hackathon%20HN/docs/00_Thang_diem_BTC.md) & [00_Doc_hieu.md](file:///d:/Codex%20hackathon%20HN/docs/00_Doc_hieu.md) |
 
 ---
@@ -101,7 +101,7 @@ TIÊU CHÍ 1: DEMO ĐT THẬT             TIÊU CHÍ 2: VẤN ĐỀ THẬT      
 ### 4.1. Trong phạm vi MVP Hackathon (In-Scope)
 - [x] PWA di động cài đặt ra màn hình chính, giao diện Standalone không thanh URL.
 - [x] Nén ảnh đa luồng tại máy khách bằng Canvas API (max 1600px, JPEG 0.8).
-- [x] Multi-modal AI Vision Agent tích hợp Google Gemini 1.5 Flash với Structured Output JSON.
+- [x] Multi-modal AI Vision Agent tích hợp Google Gemini 2.5 Flash với Structured Output JSON.
 - [x] Nhận diện và bóc tách câu trích dẫn nguồn (`source_quote`) làm bằng chứng cho từng task.
 - [x] Giao diện Human-in-the-Loop: Thẻ hỏi lại 1-chạm khi deadline mơ hồ.
 - [x] Thuật toán xếp lịch xác định (Deterministic Scheduler) theo nguyên tắc EDF và buffer an toàn.
@@ -136,7 +136,7 @@ flowchart TD
     end
 
     subgraph AI_LAYER["Tầng AI Agent (Multi-modal Vision)"]
-        B --> D[Google Gemini 1.5 Flash API]
+        B --> D[Google Gemini 2.5 Flash API]
         D --> E{Kiểm tra Structured JSON Schema}
         E -->|Thành công| F[Tasks Contract: Title + Source Quote + Deadline]
         E -->|Lỗi Schema| G[Auto-retry 1 lần với Temperature 0.0]
