@@ -1,64 +1,22 @@
 // PlanSnap Multi-modal Vision Agent Connector
-// Hỗ trợ gọi trực tiếp Google Gemini API (gemini-2.5-flash) + Rasterize SVG Presets
+// Tối ưu tốc độ (< 2s) với gemini-3-flash-preview + Auto-Fallback
 
-const SYSTEM_PROMPT = `VAI TRÒ:
-Bạn là Chuyên gia trích xuất kế hoạch học tập của ứng dụng PlanSnap.
-Nhiệm vụ của bạn là đọc các hình ảnh được cung cấp (ảnh chụp màn hình Zalo, Messenger, giao diện LMS, ảnh chụp slide, bảng trắng hoặc chữ viết tay) và trích xuất tất cả các đầu việc học tập, bài tập, hạn chót cần thực hiện.
+const SYSTEM_PROMPT = `Bạn là bộ trích xuất lịch học tập PlanSnap. Đọc ảnh (Zalo, LMS, slide, viết tay) và trả về JSON.
+Quy tắc:
+1. Chỉ trích xuất việc có thật trong ảnh, kèm câu trích nguyên văn trong "source_quote". Không tự bịa.
+2. Ngày tháng Việt Nam mặc định dd/mm (vd "3/4" = 03/04).
+3. Dùng timestamp tin nhắn trong ảnh làm mốc suy luận ngày tương đối ("thứ 6 tuần sau", "ngày mai").
+4. Nếu hạn chót mơ hồ: "needs_confirmation": true, điền "question" ngắn và "options" gồm 2 chuỗi ISO-8601 (+07:00). Nếu rõ: "needs_confirmation": false, điền "deadline_iso".
+5. Ước lượng "estimated_minutes" (Quiz: 30-45, Đọc: 60, Bài lớn: 120-180).
 
-CÁC NGUYÊN TẮC BẮT BUỘC:
-1. NGUYÊN TẮC BẰNG CHỨNG THỰC TẾ (CHỐNG BỊA VIỆC):
-   - Mọi đầu việc (task) trích xuất ra BẮT BUỘC phải có đoạn văn bản trích dẫn nguyên văn từ ảnh trong trường "source_quote".
-   - Nếu một hình ảnh không chứa bất kỳ hạn chót/bài tập nào, TUYỆT ĐỐI KHÔNG tự bịa ra công việc.
-
-2. QUY TẮC ĐỊNH DẠNG NGÀY THÁNG VIỆT NAM:
-   - Ở Việt Nam, định dạng ngày tháng viết tắt mặc định là Ngày/Tháng (dd/mm). Ví dụ: "3/4" là ngày 03 tháng 04.
-
-3. XỬ LÝ HẠN CHÓT TƯƠNG ĐỐI & TEM THỜI GIAN TIN NHẮN:
-   - Hãy tìm tem thời gian gửi tin nhắn (timestamp) xuất hiện trong ảnh chụp màn hình Zalo/Messenger (ví dụ: "Hôm qua lúc 14:20", "Thứ Năm 10:15").
-   - Dùng tem thời gian đó làm mốc tham chiếu để suy luận các cụm từ tương đối như "thứ 6 tuần sau", "ngày mai".
-
-4. PHÁT HIỆN SỰ MƠ HỒ (AMBIGUITY DETECTION):
-   - Nếu hạn chót mơ hồ (ví dụ: "thứ 6 tuần sau"), hãy:
-     + Đặt "needs_confirmation": true
-     + Điền "question": Câu hỏi làm rõ ngắn gọn
-     + Điền "options": 2 mốc thời gian ISO-8601 cụ thể để người dùng bấm chọn nhanh.
-   - Nếu thời hạn rõ ràng:
-     + Đặt "needs_confirmation": false
-     + Điền "deadline_iso": chuỗi ISO-8601 chuẩn.
-
-5. ƯỚC LƯỢNG THỜI GIAN THỰC HIỆN (estimated_minutes):
-   - Quiz/Trắc nghiệm: 30-45p. Đọc tài liệu: 60p. Bài tập lớn/Tiểu luận: 120-240p.
-
-ĐẦU RA:
-Bắt buộc trả về đúng định dạng JSON Schema:
-{
-  "tasks": [
-    {
-      "id": "task_1",
-      "title": "Tên việc ngắn gọn",
-      "source_quote": "Câu trích nguyên văn từ ảnh",
-      "source_image_index": 1,
-      "deadline_raw": "Thời hạn gốc trong ảnh",
-      "deadline_iso": "2026-11-20T17:00:00+07:00 hoặc null",
-      "needs_confirmation": true_hoặc_false,
-      "question": "Câu hỏi nếu cần xác nhận hoặc null",
-      "options": ["ISO string 1", "ISO string 2"],
-      "estimated_minutes": 120,
-      "confidence": 0.9
-    }
-  ]
-}`;
+JSON Schema:
+{"tasks":[{"id":"t1","title":"Tên ngắn gọn","source_quote":"Trích nguyên văn","source_image_index":1,"deadline_raw":"Hạn gốc","deadline_iso":"2026-11-20T17:00:00+07:00","needs_confirmation":false,"question":null,"options":[],"estimated_minutes":60,"confidence":0.95}]}`;
 
 class VisionAgent {
-  // Chuyển ảnh SVG preset sang JPEG base64 để Gemini API đọc được như ảnh thật
   static async ensureRasterImage(img) {
     if (img.mimeType !== 'image/svg+xml' && !img.dataUrl?.startsWith('data:image/svg+xml')) {
-      return {
-        mimeType: img.mimeType || 'image/jpeg',
-        base64Data: img.base64Data
-      };
+      return { mimeType: img.mimeType || 'image/jpeg', base64Data: img.base64Data };
     }
-
     return new Promise((resolve, reject) => {
       const image = new Image();
       image.onload = () => {
@@ -69,19 +27,23 @@ class VisionAgent {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0);
-        const jpegUrl = canvas.toDataURL('image/jpeg', 0.9);
-        resolve({
-          mimeType: 'image/jpeg',
-          base64Data: jpegUrl.split(',')[1]
-        });
+        const jpegUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ mimeType: 'image/jpeg', base64Data: jpegUrl.split(',')[1] });
       };
-      image.onerror = () => reject(new Error('Không thể chuyển đổi ảnh mẫu sang JPEG'));
+      image.onerror = () => reject(new Error('Không thể xử lý ảnh mẫu'));
       image.src = img.dataUrl;
     });
   }
 
-  // Trích xuất task từ danh sách ảnh
-  static async extractTasks(compressedImages, apiKey = null, model = 'gemini-3.8-flash') {
+  static getCandidateModels(preferredModel) {
+    const deprecated = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    const clean = (!preferredModel || deprecated.includes(preferredModel))
+      ? 'gemini-3-flash-preview'
+      : preferredModel;
+    return [...new Set([clean, 'gemini-3-flash-preview', 'gemini-3.5-flash', 'gemini-3.8-flash'])];
+  }
+
+  static async extractTasks(compressedImages, apiKey = null, model = 'gemini-3-flash-preview') {
     const hasKey = apiKey && apiKey.trim().length > 10;
     const isPresetPack = compressedImages.every(img => img.isPreset);
 
@@ -89,70 +51,58 @@ class VisionAgent {
       return await VisionAgent.callGeminiApi(compressedImages, apiKey.trim(), model);
     }
 
-    // Nếu người dùng tải ảnh thật lên nhưng chưa nhập API Key -> báo rõ, không bịa kết quả giả
     if (!isPresetPack) {
-      const err = new Error('Chưa cấu hình Gemini API Key. Vui lòng nhập API Key ở mục Cài đặt để AI phân tích ảnh thật của bạn, hoặc dùng ảnh mẫu ở màn hình chính.');
+      const err = new Error('Chưa có Gemini API Key để phân tích ảnh thật.');
       err.code = 'NO_API_KEY';
       throw err;
     }
 
-    // Nếu là ảnh mẫu Demo -> chạy mô phỏng theo đúng loại preset
     if (compressedImages.length === 1 && compressedImages[0].presetType === 'judge') {
-      const judgeTask = await VisionAgent.extractHandwrittenPrompt(compressedImages[0]);
-      return [judgeTask];
+      const judgeTask = await VisionAgent.extractHandwrittenPrompt();
+      return { tasks: [judgeTask], modelUsed: 'preset', elapsedMs: 350 };
     }
 
-    return await VisionAgent.simulateExtraction(compressedImages);
+    const tasks = await VisionAgent.simulateExtraction();
+    return { tasks, modelUsed: 'preset', elapsedMs: 400 };
   }
 
-  static getCandidateModels(preferredModel) {
-    const clean = (preferredModel === 'gemini-2.5-flash' || preferredModel === 'gemini-2.0-flash' || !preferredModel)
-      ? 'gemini-3.8-flash'
-      : preferredModel;
-    return [...new Set([clean, 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'])];
-  }
-
-  // Kiểm tra nhanh API Key có hoạt động không
-  static async testApiKey(apiKey, model = 'gemini-3.8-flash') {
+  static async testApiKey(apiKey, model = 'gemini-3-flash-preview') {
     const candidates = VisionAgent.getCandidateModels(model);
     let lastErr = null;
     for (const m of candidates) {
+      const t0 = performance.now();
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey.trim()}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Trả lời đúng 1 từ: OK' }] }]
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: 'OK' }] }] })
       });
-      if (response.ok) return m;
+      if (response.ok) {
+        return { model: m, elapsedMs: Math.round(performance.now() - t0) };
+      }
       const errText = await response.text();
-      lastErr = new Error(`HTTP ${response.status}: ${errText.slice(0, 120)}`);
+      lastErr = new Error(`HTTP ${response.status}: ${errText.slice(0, 100)}`);
       if (response.status !== 404 && response.status !== 503) throw lastErr;
     }
     throw lastErr;
   }
 
-  // Gọi trực tiếp Google Gemini API (tự chuyển model dự phòng nếu 404/503)
-  static async callGeminiApi(compressedImages, apiKey, model = 'gemini-3.8-flash') {
+  static async callGeminiApi(compressedImages, apiKey, model = 'gemini-3-flash-preview') {
+    const t0 = performance.now();
     const parts = [
-      { text: `${SYSTEM_PROMPT}\n\nThời gian hiện tại (múi giờ +07:00): ${new Date().toISOString()}` }
+      { text: `${SYSTEM_PROMPT}\nHiện tại (+07:00): ${new Date().toISOString()}` }
     ];
 
-    for (const img of compressedImages) {
-      const raster = await VisionAgent.ensureRasterImage(img);
+    const rasterList = await Promise.all(compressedImages.map(img => VisionAgent.ensureRasterImage(img)));
+    for (const raster of rasterList) {
       if (raster.base64Data && raster.base64Data.length > 50) {
-        parts.push({
-          inline_data: {
-            mime_type: raster.mimeType,
-            data: raster.base64Data
-          }
-        });
+        parts.push({ inline_data: { mime_type: raster.mimeType, data: raster.base64Data } });
       }
     }
 
     const candidates = VisionAgent.getCandidateModels(model);
     let data = null;
+    let modelUsed = candidates[0];
     let lastErr = null;
 
     for (const m of candidates) {
@@ -171,31 +121,35 @@ class VisionAgent {
 
       if (response.ok) {
         data = await response.json();
+        modelUsed = m;
         break;
       }
 
       const errText = await response.text();
-      lastErr = new Error(`Gemini API HTTP ${response.status}: ${errText.slice(0, 180)}`);
-      if (response.status !== 404 && response.status !== 503) {
-        throw lastErr;
-      }
+      lastErr = new Error(`HTTP ${response.status}: ${errText.slice(0, 140)}`);
+      if (response.status !== 404 && response.status !== 503) throw lastErr;
     }
 
     if (!data) throw lastErr || new Error('Không thể kết nối Gemini API.');
+
     const rawJsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawJsonText) {
-      throw new Error('Gemini API không trả về dữ liệu hợp lệ.');
-    }
+    if (!rawJsonText) throw new Error('Gemini API không trả về dữ liệu hợp lệ.');
+
     const parsed = JSON.parse(rawJsonText);
-    return (parsed.tasks || []).map((t, i) => ({
+    const tasks = (parsed.tasks || []).map((t, i) => ({
       ...t,
       id: t.id || `task_live_${Date.now()}_${i}`
     }));
+
+    return {
+      tasks,
+      modelUsed,
+      elapsedMs: Math.round(performance.now() - t0)
+    };
   }
 
-  // Bộ bóc tách mẫu cho ảnh Demo Preset (khi chưa nhập API Key)
-  static async simulateExtraction(compressedImages) {
-    await new Promise(r => setTimeout(r, 1200));
+  static async simulateExtraction() {
+    await new Promise(r => setTimeout(r, 400));
 
     const now = new Date();
     const nextFri = new Date(now);
@@ -216,26 +170,23 @@ class VisionAgent {
     return [
       {
         id: 'task_zalo_' + Date.now(),
-        title: 'Nộp bản cuối tiểu luận môn Marketing',
+        title: 'Nộp bản cuối tiểu luận Marketing',
         source_quote: 'Hạn nộp bản cuối tiểu luận trước 17h thứ 6 tuần sau nha cả nhóm',
         source_image_index: 1,
         deadline_raw: '17h thứ 6 tuần sau',
         deadline_iso: null,
         needs_confirmation: true,
-        question: 'Hạn chót "Thứ 6 tuần sau" trong tin nhắn Zalo tương ứng ngày nào?',
-        options: [
-          nextFri.toISOString(),
-          nextNextFri.toISOString()
-        ],
+        question: '“Thứ 6 tuần sau” trong tin nhắn Zalo là ngày nào?',
+        options: [nextFri.toISOString(), nextNextFri.toISOString()],
         estimated_minutes: 180,
         confidence: 0.82
       },
       {
         id: 'task_lms_' + (Date.now() + 1),
-        title: 'Hoàn thành Quiz 4 môn Kinh tế vi mô',
+        title: 'Hoàn thành Quiz 4 Kinh tế vi mô',
         source_quote: 'LMS Canvas: Quiz 4 closes Sunday at 23:59',
         source_image_index: 2,
-        deadline_raw: 'Chủ Nhật tuần này 23:59',
+        deadline_raw: 'Chủ Nhật 23:59',
         deadline_iso: thisSun.toISOString(),
         needs_confirmation: false,
         question: null,
@@ -245,10 +196,10 @@ class VisionAgent {
       },
       {
         id: 'task_slide_' + (Date.now() + 2),
-        title: 'Chuẩn bị bài thuyết trình Case Study số 2',
-        source_quote: 'Slide đề cương: Các nhóm nộp slide thuyết trình trước giờ vào lớp (08h00 thứ 3 tuần tới)',
+        title: 'Nộp slide thuyết trình Case Study 2',
+        source_quote: 'Các nhóm nộp slide trước giờ vào lớp (08h00 thứ 3 tuần tới)',
         source_image_index: 3,
-        deadline_raw: 'Thứ Ba tuần tới 08:00',
+        deadline_raw: 'Thứ Ba 08:00',
         deadline_iso: nextTue.toISOString(),
         needs_confirmation: false,
         question: null,
@@ -259,9 +210,8 @@ class VisionAgent {
     ];
   }
 
-  // Thử thách chữ viết tay mẫu (khi dùng ảnh viết tay preset)
-  static async extractHandwrittenPrompt(compressedImage) {
-    await new Promise(r => setTimeout(r, 1100));
+  static async extractHandwrittenPrompt() {
+    await new Promise(r => setTimeout(r, 350));
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(14, 0, 0, 0);
@@ -281,7 +231,6 @@ class VisionAgent {
     };
   }
 
-  // Sinh ảnh mẫu đồ họa phục vụ thử nhanh
   static getSampleImages() {
     const zaloSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
       <rect width="600" height="400" fill="#e2e8f0"/>

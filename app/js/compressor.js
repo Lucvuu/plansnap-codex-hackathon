@@ -1,6 +1,6 @@
 // PlanSnap Client-side Image Compressor - Canvas max 1600px JPEG
 class ImageCompressor {
-  static async compress(file, maxDimension = 1600, quality = 0.8) {
+  static async compress(file, maxDimension = 1200, quality = 0.78) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);

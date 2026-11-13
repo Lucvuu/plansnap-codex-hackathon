@@ -1,726 +1,899 @@
-// PlanSnap Main Application Controller - Clean Production Architecture
-document.addEventListener('DOMContentLoaded', async () => {
-  let compressedImages = [];
-  let currentTasks = [];
-  let scheduledEvents = [];
-  let currentFilter = 'all';
+/**
+ * PlanSnap Core Application Controller (v2.2)
+ * Handles Capture -> Vision Extraction -> Interactive Clarification -> Deterministic Scheduling -> IndexedDB Persistence
+ */
+(() => {
+    'use strict';
 
-  const SLOT_MAP = {
-    'weekday-eve': [
-      { day: 1, start: '19:30', end: '22:30' },
-      { day: 2, start: '19:30', end: '22:30' },
-      { day: 3, start: '19:30', end: '22:30' },
-      { day: 4, start: '19:30', end: '22:30' },
-      { day: 5, start: '19:30', end: '22:30' }
-    ],
-    'sat-morn': [{ day: 6, start: '08:30', end: '11:30' }],
-    'sat-aft': [{ day: 6, start: '14:00', end: '17:00' }],
-    'sun-morn': [{ day: 0, start: '08:30', end: '11:30' }],
-    'sun-aft': [{ day: 0, start: '14:00', end: '17:00' }]
-  };
+    const DEFAULT_MODEL = 'gemini-3-flash-preview';
+    const DEPRECATED_MODELS = new Set([
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro'
+    ]);
 
-  let enabledSlotKeys = ['weekday-eve', 'sat-morn', 'sat-aft', 'sun-morn', 'sun-aft'];
+    const DEFAULT_SLOTS = {
+        mon_fri_eve: true,
+        sat_morn: true,
+        sat_aft: true,
+        sun_morn: true,
+        sun_aft: true,
+        sun_eve: true
+    };
 
-  // DOM Elements
-  const tabPanes = document.querySelectorAll('.tab-pane');
-  const navItems = document.querySelectorAll('.nav-item');
-  const headerConnPill = document.getElementById('header-conn-pill');
-  const headerConnStatus = document.getElementById('header-conn-status');
+    const state = {
+        images: [],
+        tasks: [],
+        schedule: [],
+        apiKey: '',
+        model: DEFAULT_MODEL,
+        slots: { ...DEFAULT_SLOTS },
+        selectedDayKey: 'all',
+        activeTab: 'capture',
+        isScanning: false,
+        timerInterval: null
+    };
 
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('file-input');
-  const cameraInput = document.getElementById('camera-input');
-  const btnCameraDirect = document.getElementById('btn-camera-direct');
-  const previewGrid = document.getElementById('preview-grid');
-  const btnScan = document.getElementById('btn-scan');
-  const btnLoadPresetStudent = document.getElementById('btn-load-preset-student');
-  const btnLoadPresetJudge = document.getElementById('btn-load-preset-judge');
-  const progressContainer = document.getElementById('progress-container');
-  const progressText = document.getElementById('progress-text');
-  const progressBar = document.getElementById('progress-bar');
-  const apiMissingAlert = document.getElementById('api-missing-alert');
-  const btnGotoSettings = document.getElementById('btn-goto-settings');
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-  const tasksContainer = document.getElementById('tasks-container');
-  const taskCountEl = document.getElementById('task-count');
-  const clarificationArea = document.getElementById('clarification-area');
-  const btnAddManualTask = document.getElementById('btn-add-manual-task');
+    const el = {
+        headerConnPill: $('#header-conn-pill'),
+        headerConnStatus: $('#header-conn-status'),
 
-  const scheduleContainer = document.getElementById('schedule-container');
-  const btnExportIcs = document.getElementById('btn-export-ics');
-  const dayPills = document.querySelectorAll('.day-pill');
+        dropzone: $('#dropzone'),
+        btnPickGallery: $('#btn-pick-gallery'),
+        btnCameraDirect: $('#btn-camera-direct'),
+        fileInput: $('#file-input'),
+        cameraInput: $('#camera-input'),
+        previewGrid: $('#preview-grid'),
+        btnScan: $('#btn-scan'),
+        progressContainer: $('#progress-container'),
+        progressText: $('#progress-text'),
+        progressTimer: $('#progress-timer'),
+        progressBar: $('#progress-bar'),
+        apiMissingAlert: $('#api-missing-alert'),
+        btnGotoSettings: $('#btn-goto-settings'),
+        btnLoadPresetStudent: $('#btn-load-preset-student'),
+        btnLoadPresetJudge: $('#btn-load-preset-judge'),
 
-  const apiKeyInput = document.getElementById('api-key-input');
-  const modelSelect = document.getElementById('model-select');
-  const btnTestKey = document.getElementById('btn-test-key');
-  const btnSaveKey = document.getElementById('btn-save-key');
-  const availToggles = document.querySelectorAll('.avail-toggle');
-  const btnClearDb = document.getElementById('btn-clear-db');
-  const clearConfirmBox = document.getElementById('clear-confirm-box');
-  const btnClearCancel = document.getElementById('btn-clear-cancel');
-  const btnClearConfirm = document.getElementById('btn-clear-confirm');
+        taskSummaryText: $('#task-summary-text'),
+        tasksProgressFill: $('#tasks-progress-fill'),
+        btnAddManualTask: $('#btn-add-manual-task'),
+        clarificationArea: $('#clarification-area'),
+        tasksContainer: $('#tasks-container'),
+        navTasksBadge: $('#nav-tasks-badge'),
 
-  const modalBackdrop = document.getElementById('task-modal-backdrop');
-  const modalTitle = document.getElementById('modal-title');
-  const modalForm = document.getElementById('task-modal-form');
-  const modalTaskId = document.getElementById('modal-task-id');
-  const modalTaskTitle = document.getElementById('modal-task-title');
-  const modalTaskDeadline = document.getElementById('modal-task-deadline');
-  const modalTaskDuration = document.getElementById('modal-task-duration');
-  const btnModalClose = document.getElementById('btn-modal-close');
-  const btnModalCancel = document.getElementById('btn-modal-cancel');
+        scheduleSummaryText: $('#schedule-summary-text'),
+        btnExportIcs: $('#btn-export-ics'),
+        weekStrip: $('#week-strip'),
+        scheduleContainer: $('#schedule-container'),
 
-  const toastEl = document.getElementById('toast');
-  const toastMsg = document.getElementById('toast-msg');
-  let toastTimer = null;
+        apiKeyInput: $('#api-key-input'),
+        btnToggleKeyVis: $('#btn-toggle-key-vis'),
+        modelSelect: $('#model-select'),
+        btnTestKey: $('#btn-test-key'),
+        btnSaveKey: $('#btn-save-key'),
+        slotToggles: $$('.list-toggle[data-slot]'),
+        btnClearDb: $('#btn-clear-db'),
+        clearConfirmBox: $('#clear-confirm-box'),
+        btnClearCancel: $('#btn-clear-cancel'),
+        btnClearConfirm: $('#btn-clear-confirm'),
 
-  function showToast(message) {
-    toastMsg.innerText = message;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
-  }
+        taskModalBackdrop: $('#task-modal-backdrop'),
+        modalTitle: $('#modal-title'),
+        taskModalForm: $('#task-modal-form'),
+        modalTaskId: $('#modal-task-id'),
+        modalTaskTitle: $('#modal-task-title'),
+        modalTaskDeadline: $('#modal-task-deadline'),
+        modalTaskDuration: $('#modal-task-duration'),
+        btnModalClose: $('#btn-modal-close'),
+        btnModalCancel: $('#btn-modal-cancel'),
 
-  function switchTab(tabId) {
-    navItems.forEach(n => n.classList.toggle('active', n.dataset.tab === tabId));
-    tabPanes.forEach(p => p.classList.toggle('active', p.id === tabId));
-  }
+        navItems: $$('.nav-item[data-tab]'),
+        tabPanes: $$('.tab-pane'),
+        toast: $('#toast')
+    };
 
-  function updateConnectionStatus() {
-    const hasKey = apiKeyInput.value.trim().length > 10;
-    if (hasKey) {
-      headerConnPill.classList.add('live');
-      headerConnStatus.innerText = 'Gemini Live';
-      apiMissingAlert.hidden = true;
-    } else {
-      headerConnPill.classList.remove('live');
-      headerConnStatus.innerText = 'Chế độ mẫu';
-    }
-  }
-
-  function getCustomSlots() {
-    const slots = [];
-    enabledSlotKeys.forEach(key => {
-      if (SLOT_MAP[key]) slots.push(...SLOT_MAP[key]);
-    });
-    return slots;
-  }
-
-  function toDatetimeLocalValue(isoString) {
-    const d = isoString ? new Date(isoString) : new Date(Date.now() + 24 * 3600 * 1000);
-    if (isNaN(d.getTime())) return '';
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
-  function formatDayHeader(dateObj) {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetStart = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-    const diffDays = Math.round((targetStart - todayStart) / 86400000);
-
-    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-    const dateStr = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
-    if (diffDays === 0) return `Hôm nay · ${dateStr}`;
-    if (diffDays === 1) return `Ngày mai · ${dateStr}`;
-    return `${dayNames[dateObj.getDay()]} · ${dateStr}`;
-  }
-
-  // 1. Navigation
-  navItems.forEach(item => {
-    item.addEventListener('click', () => switchTab(item.dataset.tab));
-  });
-
-  headerConnPill.addEventListener('click', () => switchTab('tab-settings'));
-  btnGotoSettings.addEventListener('click', () => switchTab('tab-settings'));
-
-  // 2. Restore State from IndexedDB
-  async function loadPersistedState() {
-    try {
-      const [savedTasks, savedSchedule, savedApiKey, savedModel, savedSlots] = await Promise.all([
-        window.storage.getTasks(),
-        window.storage.getSchedule(),
-        window.storage.getSetting('gemini_api_key', ''),
-        window.storage.getSetting('gemini_model', 'gemini-3.8-flash'),
-        window.storage.getSetting('available_slots', null)
-      ]);
-
-      if (savedApiKey) apiKeyInput.value = savedApiKey;
-      const migratedModel = (!savedModel || savedModel === 'gemini-2.5-flash' || savedModel === 'gemini-2.0-flash')
-        ? 'gemini-3.8-flash'
-        : savedModel;
-      modelSelect.value = migratedModel;
-      if (Array.isArray(savedSlots)) enabledSlotKeys = savedSlots;
-
-      availToggles.forEach(toggle => {
-        toggle.classList.toggle('active', enabledSlotKeys.includes(toggle.dataset.slot));
-      });
-
-      updateConnectionStatus();
-
-      if (savedTasks && savedTasks.length > 0) {
-        currentTasks = savedTasks;
-      }
-      if (savedSchedule && savedSchedule.length > 0) {
-        scheduledEvents = savedSchedule;
-      }
-
-      renderTasks();
-      renderSchedule();
-    } catch (err) {
-      console.error('[Storage] Error restoring state:', err);
-    }
-  }
-
-  await loadPersistedState();
-
-  // 3. Image Selection, Drag & Drop, Camera Capture
-  async function handleFilesSelected(files) {
-    if (!files || files.length === 0) return;
-    const validFiles = Array.from(files).slice(0, 5);
-    compressedImages = [];
-    apiMissingAlert.hidden = true;
-    showToast(`Đang nén ${validFiles.length} ảnh...`);
-
-    try {
-      for (const file of validFiles) {
-        const result = await window.ImageCompressor.compress(file);
-        compressedImages.push({ ...result, isPreset: false });
-      }
-      renderPreviewGrid(compressedImages);
-      btnScan.disabled = false;
-      btnScan.innerText = `Trích xuất ${compressedImages.length} ảnh & Xếp lịch`;
-    } catch (err) {
-      showToast('Không thể đọc ảnh: ' + err.message);
-    }
-  }
-
-  dropzone.addEventListener('click', () => fileInput.click());
-  dropzone.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      fileInput.click();
-    }
-  });
-
-  dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropzone.classList.add('dragover');
-  });
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-  dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropzone.classList.remove('dragover');
-    handleFilesSelected(e.dataTransfer.files);
-  });
-
-  fileInput.addEventListener('change', (e) => {
-    handleFilesSelected(e.target.files);
-    fileInput.value = '';
-  });
-
-  btnCameraDirect.addEventListener('click', () => cameraInput.click());
-  cameraInput.addEventListener('change', (e) => {
-    handleFilesSelected(e.target.files);
-    cameraInput.value = '';
-  });
-
-  function renderPreviewGrid(images) {
-    previewGrid.innerHTML = '';
-    images.forEach((img, idx) => {
-      const div = document.createElement('div');
-      div.className = 'preview-item';
-      div.innerHTML = `
-        <img src="${img.dataUrl}" alt="${img.name || 'Ảnh'}">
-        <button class="preview-remove" type="button" data-idx="${idx}" aria-label="Xóa ảnh">&times;</button>
-      `;
-      previewGrid.appendChild(div);
-    });
-
-    previewGrid.querySelectorAll('.preview-remove').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = parseInt(btn.dataset.idx, 10);
-        compressedImages.splice(idx, 1);
-        renderPreviewGrid(compressedImages);
-        btnScan.disabled = compressedImages.length === 0;
-        btnScan.innerText = compressedImages.length > 0
-          ? `Trích xuất ${compressedImages.length} ảnh & Xếp lịch`
-          : 'Trích xuất việc & Xếp lịch';
-      });
-    });
-  }
-
-  // 4. Sample Presets
-  btnLoadPresetStudent.addEventListener('click', () => {
-    compressedImages = window.VisionAgent.getSampleImages().studentPack;
-    apiMissingAlert.hidden = true;
-    renderPreviewGrid(compressedImages);
-    btnScan.disabled = false;
-    btnScan.innerText = 'Trích xuất 3 ảnh mẫu & Xếp lịch';
-    showToast('Đã nạp 3 ảnh mẫu Zalo / LMS / Slide');
-  });
-
-  btnLoadPresetJudge.addEventListener('click', () => {
-    compressedImages = [window.VisionAgent.getSampleImages().judgeHandwritten];
-    apiMissingAlert.hidden = true;
-    renderPreviewGrid(compressedImages);
-    btnScan.disabled = false;
-    btnScan.innerText = 'Trích xuất ghi chú viết tay';
-    showToast('Đã nạp ảnh ghi chú viết tay');
-  });
-
-  // 5. Run Vision Agent Extraction
-  btnScan.addEventListener('click', async () => {
-    if (compressedImages.length === 0) return;
-
-    const apiKey = apiKeyInput.value.trim();
-    const model = modelSelect.value || 'gemini-3.8-flash';
-
-    btnScan.disabled = true;
-    apiMissingAlert.hidden = true;
-    progressContainer.style.display = 'flex';
-    progressBar.style.width = '25%';
-    progressText.innerText = apiKey ? 'Đang gửi ảnh tới Gemini Vision API...' : 'Đang trích xuất ảnh mẫu...';
-
-    try {
-      const t1 = setTimeout(() => {
-        progressBar.style.width = '65%';
-        progressText.innerText = 'Đang đối chiếu câu trích và thời hạn...';
-      }, 600);
-
-      const extracted = await window.VisionAgent.extractTasks(compressedImages, apiKey, model);
-      clearTimeout(t1);
-
-      if (extracted.length === 0) {
-        progressContainer.style.display = 'none';
-        btnScan.disabled = false;
-        showToast('Không phát hiện đầu việc hoặc hạn chót nào trong ảnh');
-        return;
-      }
-
-      // Tránh trùng lặp nếu quét lại cùng một ảnh/preset
-      const existingKeys = new Set(currentTasks.map(t => `${t.title}::${t.source_quote}`));
-      const uniqueNew = extracted.filter(t => !existingKeys.has(`${t.title}::${t.source_quote}`));
-      currentTasks = [...uniqueNew, ...currentTasks];
-      await window.storage.saveTasks(currentTasks);
-
-      progressBar.style.width = '100%';
-      progressText.innerText = `Hoàn tất (${extracted.length} đầu việc)`;
-      showToast(`Đã trích xuất ${extracted.length} đầu việc`);
-
-      setTimeout(() => {
-        progressContainer.style.display = 'none';
-        btnScan.disabled = false;
-        renderTasks();
-        switchTab('tab-tasks');
-      }, 350);
-    } catch (err) {
-      progressContainer.style.display = 'none';
-      btnScan.disabled = false;
-      if (err.code === 'NO_API_KEY') {
-        apiMissingAlert.hidden = false;
-        showToast('Vui lòng nhập Gemini API Key để đọc ảnh thật');
-      } else {
-        showToast('Lỗi AI: ' + err.message);
-      }
-    }
-  });
-
-  // 6. Render Tasks & Ambiguity Clarification
-  function renderTasks() {
-    tasksContainer.innerHTML = '';
-    clarificationArea.innerHTML = '';
-    const activeCount = currentTasks.filter(t => !t.completed).length;
-    taskCountEl.innerText = activeCount;
-
-    if (currentTasks.length === 0) {
-      tasksContainer.innerHTML = `
-        <div class="empty-state">
-          Chưa có đầu việc nào.<br>
-          Hãy quét ảnh ở tab "Quét ảnh" hoặc bấm "+ Thêm việc".
-        </div>
-      `;
-      triggerAutoScheduling();
-      return;
+    let toastTimer = null;
+    function showToast(msg, type = 'info') {
+        if (!el.toast) return;
+        el.toast.textContent = msg;
+        el.toast.className = `toast ${type} visible`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            el.toast.classList.remove('visible');
+        }, 3200);
     }
 
-    const ambiguousTask = currentTasks.find(t => t.needs_confirmation && !t.completed);
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
-    if (ambiguousTask) {
-      const clarifyCard = document.createElement('div');
-      clarifyCard.className = 'clarify-card';
-      clarifyCard.innerHTML = `
-        <div class="clarify-badge">Cần xác nhận 1 chạm</div>
-        <div class="clarify-question">${ambiguousTask.question || 'Hạn chót chưa rõ ràng, vui lòng chọn ngày:'}</div>
-        <div class="clarify-options">
-          ${(ambiguousTask.options || []).map(opt => {
-            const d = new Date(opt);
-            const dayName = d.getDay() === 0 ? 'CN' : `Thứ ${d.getDay() + 1}`;
-            const label = `${dayName}, ${d.getDate()}/${d.getMonth() + 1} (${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')})`;
-            return `<button class="btn-option" type="button" data-task-id="${ambiguousTask.id}" data-val="${opt}">${label}</button>`;
-          }).join('')}
-        </div>
-      `;
-      clarificationArea.appendChild(clarifyCard);
+    function formatDayKey(dateObj) {
+        const d = new Date(dateObj);
+        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    }
 
-      clarifyCard.querySelectorAll('.btn-option').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const target = currentTasks.find(t => t.id === btn.dataset.taskId);
-          if (target) {
-            target.deadline_iso = btn.dataset.val;
-            target.needs_confirmation = false;
-            await window.storage.saveTasks(currentTasks);
-            showToast('Đã xác nhận hạn chót');
-            renderTasks();
-          }
+    function formatTimeHM(dateObj) {
+        const d = new Date(dateObj);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function formatDeadlineLabel(iso) {
+        if (!iso) return { text: 'Chưa rõ hạn', urgent: false };
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return { text: 'Chưa rõ hạn', urgent: false };
+        const now = new Date();
+        const diffHours = (d - now) / 3600000;
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        const urgent = diffHours <= 24;
+        if (diffHours < 0) return { text: `Quá hạn (${dd}/${mm} ${hh}:${mi})`, urgent: true };
+        if (diffHours < 24) return { text: `Gấp · ${hh}:${mi} ${dd}/${mm}`, urgent: true };
+        return { text: `${hh}:${mi} · ${dd}/${mm}`, urgent: false };
+    }
+
+    function toDatetimeLocalValue(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    }
+
+    function switchTab(tabName) {
+        state.activeTab = tabName;
+        el.navItems.forEach((btn) => {
+            const active = btn.dataset.tab === tabName;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-      });
+        el.tabPanes.forEach((pane) => {
+            pane.classList.toggle('active', pane.id === `tab-${tabName}`);
+        });
     }
 
-    currentTasks.forEach((task, index) => {
-      const item = document.createElement('div');
-      item.className = `task-item ${task.completed ? 'completed' : ''}`;
-
-      let deadlineDisplay = 'Chưa xác định';
-      let badgeClass = 'badge-amber';
-
-      if (task.deadline_iso) {
-        const d = new Date(task.deadline_iso);
-        deadlineDisplay = `${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')} · ${d.getDate()}/${d.getMonth() + 1}`;
-        badgeClass = 'badge-green';
-      }
-
-      item.innerHTML = `
-        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} aria-label="Đánh dấu hoàn thành">
-        <div class="task-body">
-          <div class="task-header">
-            <div class="task-title"></div>
-            <span class="task-badge ${badgeClass}">${task.needs_confirmation ? 'Chờ xác nhận' : 'Rõ hạn'}</span>
-          </div>
-          <div class="task-quote"></div>
-          <div class="task-footer">
-            <span>Hạn: <strong>${deadlineDisplay}</strong> · ${task.estimated_minutes || 60}p</span>
-            <div class="task-actions">
-              <button class="btn-text-action btn-edit-task" type="button">Sửa</button>
-              <button class="btn-text-action danger btn-del-task" type="button">Xóa</button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      item.querySelector('.task-title').innerText = task.title;
-      item.querySelector('.task-quote').innerText = `"${task.source_quote || 'Nhập thủ công'}"`;
-
-      item.querySelector('.task-checkbox').addEventListener('change', async (e) => {
-        currentTasks[index].completed = e.target.checked;
-        await window.storage.saveTasks(currentTasks);
-        renderTasks();
-      });
-
-      item.querySelector('.btn-edit-task').addEventListener('click', () => openTaskModal(task));
-
-      item.querySelector('.btn-del-task').addEventListener('click', async () => {
-        currentTasks.splice(index, 1);
-        await window.storage.saveTasks(currentTasks);
-        showToast('Đã xóa đầu việc');
-        renderTasks();
-      });
-
-      tasksContainer.appendChild(item);
-    });
-
-    triggerAutoScheduling();
-  }
-
-  // 7. Bottom-Sheet Modal for Add / Edit Task
-  function openTaskModal(task = null) {
-    if (task) {
-      modalTitle.innerText = 'Chỉnh sửa đầu việc';
-      modalTaskId.value = task.id;
-      modalTaskTitle.value = task.title;
-      modalTaskDeadline.value = toDatetimeLocalValue(task.deadline_iso);
-      modalTaskDuration.value = String(task.estimated_minutes || 60);
-    } else {
-      modalTitle.innerText = 'Thêm đầu việc mới';
-      modalTaskId.value = '';
-      modalTaskTitle.value = '';
-      const def = new Date();
-      def.setDate(def.getDate() + 1);
-      def.setHours(20, 0, 0, 0);
-      modalTaskDeadline.value = toDatetimeLocalValue(def.toISOString());
-      modalTaskDuration.value = '60';
-    }
-    modalBackdrop.hidden = false;
-    modalTaskTitle.focus();
-  }
-
-  function closeTaskModal() {
-    modalBackdrop.hidden = true;
-  }
-
-  btnAddManualTask.addEventListener('click', () => openTaskModal(null));
-  btnModalClose.addEventListener('click', closeTaskModal);
-  btnModalCancel.addEventListener('click', closeTaskModal);
-  modalBackdrop.addEventListener('click', (e) => {
-    if (e.target === modalBackdrop) closeTaskModal();
-  });
-
-  modalForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = modalTaskTitle.value.trim();
-    const deadlineVal = modalTaskDeadline.value;
-    const duration = parseInt(modalTaskDuration.value, 10) || 60;
-    if (!title || !deadlineVal) return;
-
-    const deadlineIso = new Date(deadlineVal).toISOString();
-    const existingId = modalTaskId.value;
-
-    if (existingId) {
-      const target = currentTasks.find(t => t.id === existingId);
-      if (target) {
-        target.title = title;
-        target.deadline_iso = deadlineIso;
-        target.estimated_minutes = duration;
-        target.needs_confirmation = false;
-      }
-      showToast('Đã cập nhật đầu việc');
-    } else {
-      currentTasks.unshift({
-        id: 'task_manual_' + Date.now(),
-        title,
-        source_quote: 'Nhập thủ công',
-        source_image_index: 0,
-        deadline_raw: deadlineVal,
-        deadline_iso: deadlineIso,
-        needs_confirmation: false,
-        question: null,
-        options: [],
-        estimated_minutes: duration,
-        completed: false,
-        confidence: 1.0
-      });
-      showToast('Đã thêm đầu việc mới');
-    }
-
-    await window.storage.saveTasks(currentTasks);
-    closeTaskModal();
-    renderTasks();
-  });
-
-  // 8. Deterministic Scheduling (Respects user's enabled availability slots)
-  async function triggerAutoScheduling() {
-    const scheduler = new window.PlanSnapScheduler();
-    const activeTasks = currentTasks.filter(t => !t.completed);
-    const customSlots = getCustomSlots();
-    scheduledEvents = customSlots.length > 0 ? scheduler.schedule(activeTasks, customSlots) : [];
-    await window.storage.saveSchedule(scheduledEvents);
-    renderSchedule();
-  }
-
-  // 9. Render Schedule Grouped by Day
-  function renderSchedule() {
-    scheduleContainer.innerHTML = '';
-
-    if (scheduledEvents.length === 0) {
-      const noSlots = getCustomSlots().length === 0;
-      scheduleContainer.innerHTML = `
-        <div class="empty-state">
-          ${noSlots
-            ? 'Bạn đang tắt toàn bộ khung giờ rảnh trong Cài đặt.<br>Hãy bật ít nhất 1 khung giờ để xếp lịch.'
-            : 'Chưa có phiên làm việc nào.<br>Hãy quét ảnh hoặc xác nhận các hạn chót mơ hồ ở tab Đầu việc.'}
-        </div>
-      `;
-      return;
-    }
-
-    const now = new Date();
-    const sortedEvents = [...scheduledEvents].sort((a, b) => new Date(a.start) - new Date(b.start));
-    const filteredEvents = sortedEvents.filter(ev => {
-      if (currentFilter === 'all') return true;
-      const evDate = new Date(ev.start);
-      if (currentFilter === 'today') {
-        return evDate.getDate() === now.getDate() && evDate.getMonth() === now.getMonth() && evDate.getFullYear() === now.getFullYear();
-      }
-      if (currentFilter === 'upcoming') {
-        return evDate >= now;
-      }
-      return true;
-    });
-
-    if (filteredEvents.length === 0) {
-      scheduleContainer.innerHTML = `<div class="empty-state">Không có phiên làm việc nào trong khoảng thời gian này.</div>`;
-      return;
-    }
-
-    let lastGroupKey = '';
-    const pad = n => String(n).padStart(2, '0');
-
-    filteredEvents.forEach(ev => {
-      const start = new Date(ev.start);
-      const end = new Date(ev.end);
-      const groupKey = `${start.getFullYear()}-${start.getMonth()}-${start.getDate()}`;
-
-      if (groupKey !== lastGroupKey) {
-        const groupHeader = document.createElement('div');
-        groupHeader.className = 'day-group-header';
-        groupHeader.innerText = formatDayHeader(start);
-        scheduleContainer.appendChild(groupHeader);
-        lastGroupKey = groupKey;
-      }
-
-      const timeRange = `${pad(start.getHours())}:${pad(start.getMinutes())} – ${pad(end.getHours())}:${pad(end.getMinutes())}`;
-      const deadlineDate = ev.deadline_iso ? new Date(ev.deadline_iso) : null;
-      const hoursBeforeDeadline = deadlineDate ? Math.round((deadlineDate - end) / 3600000) : null;
-      let bufferLabel = '';
-      if (hoursBeforeDeadline !== null) {
-        if (ev.isPastDeadline || hoursBeforeDeadline < 0) {
-          bufferLabel = 'Cảnh báo: Không đủ giờ rảnh trước hạn';
-        } else if (hoursBeforeDeadline < 3) {
-          bufferLabel = `Sát hạn (${hoursBeforeDeadline}h)`;
-        } else {
-          bufferLabel = `Còn ${hoursBeforeDeadline}h trước hạn`;
+    function updateConnectionUI() {
+        const hasKey = Boolean(state.apiKey && state.apiKey.trim());
+        if (el.headerConnPill) {
+            el.headerConnPill.className = `conn-pill ${hasKey ? 'live' : 'demo'}`;
         }
-      }
-
-      const gcalUrl = window.ICalExporter.getGoogleCalendarLink(ev);
-
-      const el = document.createElement('div');
-      el.className = `timeline-item ${ev.isUrgent ? 'urgent' : ''}`;
-      el.innerHTML = `
-        <div class="timeline-content">
-          <div class="timeline-time">${timeRange} · ${ev.durationMinutes} phút</div>
-          <div class="timeline-title"></div>
-          <div class="timeline-meta">
-            <span>${bufferLabel}</span>
-          </div>
-        </div>
-        <a href="${gcalUrl}" target="_blank" rel="noopener" class="gcal-link">Google Cal</a>
-      `;
-      el.querySelector('.timeline-title').innerText = ev.originalTitle || ev.title;
-      scheduleContainer.appendChild(el);
-    });
-  }
-
-  dayPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      dayPills.forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      currentFilter = pill.dataset.filter;
-      renderSchedule();
-    });
-  });
-
-  // 10. Export .ics
-  btnExportIcs.addEventListener('click', () => {
-    if (scheduledEvents.length === 0) {
-      showToast('Chưa có lịch để xuất');
-      return;
+        if (el.headerConnStatus) {
+            el.headerConnStatus.textContent = hasKey ? 'Gemini Live' : 'Demo';
+        }
+        if (el.apiMissingAlert) {
+            el.apiMissingAlert.hidden = hasKey;
+        }
     }
-    window.ICalExporter.downloadIcsFile(scheduledEvents);
-    showToast('Đã tải tệp plansnap_lich_lam_viec.ics');
-  });
 
-  // 11. Settings: API Key, Test Connection, Availability Toggles, Clear DB
-  btnSaveKey.addEventListener('click', async () => {
-    await window.storage.saveSetting('gemini_api_key', apiKeyInput.value.trim());
-    await window.storage.saveSetting('gemini_model', modelSelect.value);
-    updateConnectionStatus();
-    showToast('Đã lưu cài đặt vào IndexedDB');
-  });
+    function renderImagePreviews() {
+        if (!el.previewGrid) return;
+        const count = state.images.length;
+        el.previewGrid.hidden = count === 0;
+        el.previewGrid.innerHTML = '';
 
-  btnTestKey.addEventListener('click', async () => {
-    const key = apiKeyInput.value.trim();
-    if (!key) {
-      showToast('Vui lòng nhập API Key trước');
-      return;
+        state.images.forEach((img, idx) => {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+
+            const sizeLabel = img.compressedSizeKb
+                ? `${img.compressedSizeKb} KB`
+                : 'Mẫu';
+
+            item.innerHTML = `
+                <img src="${img.dataUrl}" alt="${escapeHtml(img.fileName || 'Ảnh ' + (idx + 1))}">
+                <span class="preview-size">${escapeHtml(sizeLabel)}</span>
+                <button type="button" class="preview-remove" data-idx="${idx}" aria-label="Xóa ảnh">×</button>
+            `;
+            el.previewGrid.appendChild(item);
+        });
+
+        if (el.btnScan) {
+            el.btnScan.disabled = count === 0 || state.isScanning;
+            el.btnScan.textContent = count > 0
+                ? `Trích xuất ${count} ảnh & Xếp lịch`
+                : 'Trích xuất & Xếp lịch';
+        }
     }
-    btnTestKey.disabled = true;
-    btnTestKey.innerText = 'Đang kiểm tra...';
-    try {
-      const workingModel = await window.VisionAgent.testApiKey(key, modelSelect.value);
-      if (workingModel) modelSelect.value = workingModel;
-      await window.storage.saveSetting('gemini_api_key', key);
-      await window.storage.saveSetting('gemini_model', modelSelect.value);
-      updateConnectionStatus();
-      showToast(`Kết nối thành công (${modelSelect.value})`);
-    } catch (err) {
-      showToast('Kết nối thất bại: ' + err.message);
-    } finally {
-      btnTestKey.disabled = false;
-      btnTestKey.innerText = 'Kiểm tra kết nối';
+
+    async function handleFilesSelected(fileList) {
+        const files = Array.from(fileList || []).filter((f) => f.type.startsWith('image/'));
+        if (!files.length) return;
+
+        const remaining = 5 - state.images.length;
+        if (remaining <= 0) {
+            showToast('Tối đa 5 ảnh mỗi lần quét.', 'warning');
+            return;
+        }
+        const toProcess = files.slice(0, remaining);
+
+        try {
+            const compressed = await Promise.all(
+                toProcess.map((file) => window.ImageCompressor.compress(file))
+            );
+            state.images.push(...compressed);
+            renderImagePreviews();
+            if (files.length > remaining) {
+                showToast(`Đã thêm ${toProcess.length} ảnh (tối đa 5 ảnh).`, 'warning');
+            }
+        } catch (err) {
+            showToast(`Lỗi nén ảnh: ${err.message}`, 'error');
+        }
     }
-  });
 
-  availToggles.forEach(toggle => {
-    toggle.addEventListener('click', async () => {
-      const slotKey = toggle.dataset.slot;
-      toggle.classList.toggle('active');
-      if (toggle.classList.contains('active')) {
-        if (!enabledSlotKeys.includes(slotKey)) enabledSlotKeys.push(slotKey);
-      } else {
-        enabledSlotKeys = enabledSlotKeys.filter(k => k !== slotKey);
-      }
-      await window.storage.saveSetting('available_slots', enabledSlotKeys);
-      await triggerAutoScheduling();
-      showToast('Đã cập nhật khung giờ rảnh');
-    });
-  });
-
-  btnClearDb.addEventListener('click', () => {
-    clearConfirmBox.hidden = false;
-  });
-
-  btnClearCancel.addEventListener('click', () => {
-    clearConfirmBox.hidden = true;
-  });
-
-  btnClearConfirm.addEventListener('click', async () => {
-    await window.storage.clearAll();
-    currentTasks = [];
-    scheduledEvents = [];
-    compressedImages = [];
-    previewGrid.innerHTML = '';
-    btnScan.disabled = true;
-    btnScan.innerText = 'Trích xuất việc & Xếp lịch';
-    clearConfirmBox.hidden = true;
-    updateConnectionStatus();
-    renderTasks();
-    renderSchedule();
-    showToast('Đã xóa toàn bộ dữ liệu cục bộ');
-  });
-
-  // 12. PostMessage bridge for Showcase Frame
-  window.addEventListener('message', async (event) => {
-    const data = event.data;
-    if (!data || typeof data !== 'object') return;
-    switch (data.type) {
-      case 'TRIGGER_STUDENT_PRESET':
-        switchTab('tab-capture');
-        btnLoadPresetStudent.click();
-        setTimeout(() => btnScan.click(), 300);
-        break;
-      case 'TRIGGER_JUDGE_PRESET':
-        switchTab('tab-capture');
-        btnLoadPresetJudge.click();
-        setTimeout(() => btnScan.click(), 300);
-        break;
-      case 'SIMULATE_SWIPE_KILL':
-        showToast('Đang đóng và mở lại ứng dụng...');
-        setTimeout(() => window.location.reload(), 400);
-        break;
-      case 'SWITCH_TAB':
-        switchTab(data.tab || 'tab-capture');
-        break;
-      case 'TRIGGER_EXPORT_ICS':
-        switchTab('tab-schedule');
-        setTimeout(() => btnExportIcs.click(), 250);
-        break;
+    async function loadPreset(presetType) {
+        const samples = window.VisionAgent.getSampleImages();
+        const chosen = presetType === 'judge' ? samples.judge : samples.student;
+        state.images = chosen.map((s) => ({ ...s, isPreset: true, presetType }));
+        renderImagePreviews();
+        switchTab('capture');
+        showToast(
+            presetType === 'judge'
+                ? 'Đã nạp ảnh ghi chú viết tay mẫu.'
+                : 'Đã nạp 3 ảnh mẫu Zalo / LMS / Slide.',
+            'info'
+        );
     }
-  });
 
-  // 13. Service Worker (tự động kiểm tra bản mới)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(reg => reg.update()).catch(() => {});
-  }
-});
+    function startProgressTimer() {
+        const start = performance.now();
+        if (el.progressTimer) el.progressTimer.textContent = '0.0s';
+        clearInterval(state.timerInterval);
+        state.timerInterval = setInterval(() => {
+            if (el.progressTimer) {
+                const sec = ((performance.now() - start) / 1000).toFixed(1);
+                el.progressTimer.textContent = `${sec}s`;
+            }
+        }, 100);
+    }
+
+    function stopProgressTimer() {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+    }
+
+    async function runExtraction() {
+        if (!state.images.length || state.isScanning) return;
+        state.isScanning = true;
+        renderImagePreviews();
+
+        if (el.progressContainer) el.progressContainer.hidden = false;
+        if (el.progressBar) el.progressBar.style.width = '24%';
+        if (el.progressText) el.progressText.textContent = 'Đang gửi ảnh tới Gemini Vision...';
+        startProgressTimer();
+
+        try {
+            setTimeout(() => {
+                if (state.isScanning && el.progressBar) {
+                    el.progressBar.style.width = '68%';
+                    if (el.progressText) el.progressText.textContent = 'Đang đối chiếu câu trích & thời hạn...';
+                }
+            }, 450);
+
+            const result = await window.VisionAgent.extractTasks(
+                state.images,
+                state.apiKey,
+                state.model
+            );
+
+            const extracted = Array.isArray(result) ? result : (result.tasks || []);
+            const elapsedMs = result.elapsedMs || 0;
+            const modelUsed = result.modelUsed || state.model;
+
+            if (el.progressBar) el.progressBar.style.width = '100%';
+            if (el.progressText) el.progressText.textContent = 'Hoàn tất xếp lịch!';
+
+            // Merge or replace: keep existing manual/completed if needed, or append new unique tasks
+            const newTasks = extracted.map((t) => ({
+                ...t,
+                completed: Boolean(t.completed)
+            }));
+            state.tasks = newTasks;
+            await recomputeAndPersist();
+
+            const sec = (elapsedMs / 1000).toFixed(1);
+            const hasKey = Boolean(state.apiKey && state.apiKey.trim());
+            showToast(
+                hasKey
+                    ? `Đã trích xuất ${newTasks.length} đầu việc (${sec}s · ${modelUsed})`
+                    : `Demo: ${newTasks.length} đầu việc được xếp lịch (${sec}s)`,
+                'success'
+            );
+
+            setTimeout(() => {
+                if (el.progressContainer) el.progressContainer.hidden = true;
+                if (el.progressBar) el.progressBar.style.width = '0%';
+                switchTab('tasks');
+            }, 220);
+        } catch (err) {
+            showToast(`Lỗi AI: ${err.message}`, 'error');
+            if (el.progressContainer) el.progressContainer.hidden = true;
+        } finally {
+            stopProgressTimer();
+            state.isScanning = false;
+            renderImagePreviews();
+        }
+    }
+
+    async function recomputeAndPersist() {
+        const activeTasks = state.tasks.filter((t) => !t.completed);
+        state.schedule = window.PlanSnapScheduler.schedule(activeTasks, state.slots, new Date());
+        await window.storage.saveTasks(state.tasks);
+        await window.storage.saveSchedule(state.schedule);
+        renderTasks();
+        renderSchedule();
+    }
+
+    function renderTasks() {
+        const total = state.tasks.length;
+        const doneCount = state.tasks.filter((t) => t.completed).length;
+        const pendingCount = total - doneCount;
+
+        if (el.navTasksBadge) {
+            el.navTasksBadge.hidden = pendingCount === 0;
+            el.navTasksBadge.textContent = String(pendingCount);
+        }
+
+        if (el.taskSummaryText) {
+            if (total === 0) {
+                el.taskSummaryText.textContent = 'Chưa có đầu việc nào';
+            } else {
+                el.taskSummaryText.textContent = `${pendingCount} việc cần làm · ${doneCount}/${total} hoàn thành`;
+            }
+        }
+
+        if (el.tasksProgressFill) {
+            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+            el.tasksProgressFill.style.width = `${pct}%`;
+        }
+
+        // Clarification cards for ambiguous deadlines
+        if (el.clarificationArea) {
+            const ambiguous = state.tasks.filter((t) => !t.completed && t.needs_clarification);
+            el.clarificationArea.innerHTML = '';
+            ambiguous.forEach((task) => {
+                const card = document.createElement('div');
+                card.className = 'clarify-card';
+                const chipsHtml = (task.clarification_options || []).map((opt, i) => `
+                    <button type="button" class="clarify-chip" data-task-id="${escapeHtml(task.id)}" data-opt-idx="${i}">
+                        ${escapeHtml(opt.label)}
+                    </button>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="clarify-title">Cần xác nhận hạn: ${escapeHtml(task.title)}</div>
+                    <div class="clarify-quote">“${escapeHtml(task.source_quote || '')}”</div>
+                    <div class="clarify-chips">${chipsHtml}</div>
+                `;
+                el.clarificationArea.appendChild(card);
+            });
+        }
+
+        if (!el.tasksContainer) return;
+        if (total === 0) {
+            el.tasksContainer.innerHTML = `
+                <div class="empty-state">
+                    Chưa có đầu việc nào. Hãy chụp hoặc nạp ảnh mẫu ở tab <strong>Quét ảnh</strong>.
+                </div>
+            `;
+            return;
+        }
+
+        // Sort: incomplete first, then by deadline
+        const sorted = [...state.tasks].sort((a, b) => {
+            if (Boolean(a.completed) !== Boolean(b.completed)) {
+                return a.completed ? 1 : -1;
+            }
+            const da = a.deadline_iso ? new Date(a.deadline_iso).getTime() : Infinity;
+            const db = b.deadline_iso ? new Date(b.deadline_iso).getTime() : Infinity;
+            return da - db;
+        });
+
+        el.tasksContainer.innerHTML = '';
+        sorted.forEach((task) => {
+            const row = document.createElement('div');
+            row.className = `task-item${task.completed ? ' completed' : ''}`;
+            const dl = formatDeadlineLabel(task.deadline_iso);
+
+            row.innerHTML = `
+                <button type="button" class="task-check-btn" data-id="${escapeHtml(task.id)}" aria-label="Đánh dấu hoàn thành">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+                <div class="task-body">
+                    <div class="task-title">${escapeHtml(task.title)}</div>
+                    <div class="task-meta">
+                        <span class="deadline-chip${dl.urgent ? ' urgent' : ''}">${escapeHtml(dl.text)}</span>
+                        <span class="duration-chip">${Number(task.estimated_minutes) || 60} phút</span>
+                    </div>
+                    ${task.source_quote ? `<div class="task-quote">“${escapeHtml(task.source_quote)}”</div>` : ''}
+                </div>
+                <div class="task-actions">
+                    <button type="button" class="icon-btn btn-edit-task" data-id="${escapeHtml(task.id)}" aria-label="Sửa">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="icon-btn danger btn-del-task" data-id="${escapeHtml(task.id)}" aria-label="Xóa">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                            <path d="M10 11v6M14 11v6"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            el.tasksContainer.appendChild(row);
+        });
+    }
+
+    function renderWeekStrip() {
+        if (!el.weekStrip) return;
+        const eventDayKeys = new Set(state.schedule.map((ev) => formatDayKey(ev.start)));
+        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+        let html = `
+            <button type="button" class="week-day-pill${state.selectedDayKey === 'all' ? ' active' : ''}" data-day-key="all">
+                <span class="wd-name">Lịch</span>
+                <span class="wd-num">Tất cả</span>
+            </button>
+        `;
+
+        const today = new Date();
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+            const key = formatDayKey(d);
+            const hasEvents = eventDayKeys.has(key);
+            const isActive = state.selectedDayKey === key;
+            const label = i === 0 ? 'Nay' : dayNames[d.getDay()];
+
+            html += `
+                <button type="button" class="week-day-pill${isActive ? ' active' : ''}${hasEvents ? ' has-events' : ''}" data-day-key="${key}">
+                    <span class="wd-name">${label}</span>
+                    <span class="wd-num">${d.getDate()}</span>
+                    <span class="wd-dot"></span>
+                </button>
+            `;
+        }
+
+        el.weekStrip.innerHTML = html;
+    }
+
+    function renderSchedule() {
+        renderWeekStrip();
+
+        if (el.scheduleSummaryText) {
+            if (!state.schedule.length) {
+                el.scheduleSummaryText.textContent = 'Chưa có phiên làm việc nào';
+            } else {
+                const totalMins = state.schedule.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
+                const hrs = (totalMins / 60).toFixed(1).replace(/\.0$/, '');
+                el.scheduleSummaryText.textContent = `${state.schedule.length} phiên · Tổng ${hrs} giờ làm việc`;
+            }
+        }
+
+        if (el.btnExportIcs) {
+            el.btnExportIcs.disabled = state.schedule.length === 0;
+        }
+
+        if (!el.scheduleContainer) return;
+
+        const filtered = state.selectedDayKey === 'all'
+            ? state.schedule
+            : state.schedule.filter((ev) => formatDayKey(ev.start) === state.selectedDayKey);
+
+        if (!filtered.length) {
+            el.scheduleContainer.innerHTML = `
+                <div class="empty-state">
+                    ${state.schedule.length === 0
+                        ? 'Chưa có phiên học nào được xếp. Hãy trích xuất việc từ ảnh hoặc thêm thủ công.'
+                        : 'Không có phiên làm việc nào trong ngày đã chọn.'}
+                </div>
+            `;
+            return;
+        }
+
+        const groups = new Map();
+        filtered.forEach((ev) => {
+            const key = formatDayKey(ev.start);
+            if (!groups.has(key)) {
+                groups.set(key, { date: new Date(ev.start), items: [] });
+            }
+            groups.get(key).items.push(ev);
+        });
+
+        const dayFullNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        const todayKey = formatDayKey(new Date());
+
+        el.scheduleContainer.innerHTML = '';
+        groups.forEach((group, key) => {
+            const d = group.date;
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const prefix = key === todayKey ? 'Hôm nay · ' : '';
+
+            const groupEl = document.createElement('div');
+            groupEl.className = 'day-group';
+            groupEl.innerHTML = `<div class="day-group-header">${prefix}${dayFullNames[d.getDay()]}, ${dd}/${mm}</div>`;
+
+            group.items.forEach((ev) => {
+                const startStr = formatTimeHM(ev.start);
+                const endStr = formatTimeHM(ev.end);
+                const partBadge = ev.totalSessions > 1
+                    ? `<span class="agenda-badge">Phiên ${ev.sessionIndex}/${ev.totalSessions}</span>`
+                    : '';
+                const gcalUrl = window.ICalExporter.getGoogleCalendarLink(ev);
+
+                const row = document.createElement('div');
+                row.className = 'agenda-row';
+                row.innerHTML = `
+                    <div class="agenda-time-col">
+                        <span class="agenda-start">${startStr}</span>
+                        <span class="agenda-end">${endStr}</span>
+                    </div>
+                    <div class="agenda-card${ev.isUrgent || ev.isPastDeadline ? ' urgent' : ''}">
+                        <div class="agenda-card-top">
+                            <div class="agenda-title">${escapeHtml(ev.originalTitle || ev.title)}</div>
+                            ${partBadge}
+                        </div>
+                        <div class="agenda-meta">
+                            <span>${ev.durationMinutes} phút</span>
+                            ${ev.isUrgent ? '<span class="urgent-tag">Ưu tiên gấp</span>' : ''}
+                            <a class="agenda-gcal-link" href="${gcalUrl}" target="_blank" rel="noopener">Google Calendar ↗</a>
+                        </div>
+                    </div>
+                `;
+                groupEl.appendChild(row);
+            });
+
+            el.scheduleContainer.appendChild(groupEl);
+        });
+    }
+
+    function openTaskModal(taskId = null) {
+        if (!el.taskModalBackdrop) return;
+        if (taskId) {
+            const task = state.tasks.find((t) => t.id === taskId);
+            if (!task) return;
+            el.modalTitle.textContent = 'Chỉnh sửa đầu việc';
+            el.modalTaskId.value = task.id;
+            el.modalTaskTitle.value = task.title || '';
+            el.modalTaskDeadline.value = toDatetimeLocalValue(task.deadline_iso);
+            el.modalTaskDuration.value = task.estimated_minutes || 60;
+        } else {
+            el.modalTitle.textContent = 'Thêm đầu việc mới';
+            el.modalTaskId.value = '';
+            el.modalTaskTitle.value = '';
+            const def = new Date(Date.now() + 48 * 3600000);
+            def.setHours(23, 59, 0, 0);
+            el.modalTaskDeadline.value = toDatetimeLocalValue(def.toISOString());
+            el.modalTaskDuration.value = 60;
+        }
+        el.taskModalBackdrop.hidden = false;
+        el.modalTaskTitle.focus();
+    }
+
+    function closeTaskModal() {
+        if (el.taskModalBackdrop) el.taskModalBackdrop.hidden = true;
+    }
+
+    function renderSettings() {
+        if (el.apiKeyInput) el.apiKeyInput.value = state.apiKey || '';
+        if (el.modelSelect) el.modelSelect.value = state.model || DEFAULT_MODEL;
+        el.slotToggles.forEach((input) => {
+            const key = input.dataset.slot;
+            if (key in state.slots) {
+                input.checked = Boolean(state.slots[key]);
+            }
+        });
+    }
+
+    async function loadPersistedState() {
+        const [savedTasks, savedKey, savedModel, savedSlots] = await Promise.all([
+            window.storage.getTasks(),
+            window.storage.getSetting('gemini_api_key', ''),
+            window.storage.getSetting('gemini_model', DEFAULT_MODEL),
+            window.storage.getSetting('available_slots', DEFAULT_SLOTS)
+        ]);
+
+        state.tasks = Array.isArray(savedTasks) ? savedTasks : [];
+        state.apiKey = savedKey || '';
+        state.slots = { ...DEFAULT_SLOTS, ...(savedSlots || {}) };
+
+        // Auto-migrate deprecated models to fast Gemini 3 Flash Preview
+        if (!savedModel || DEPRECATED_MODELS.has(savedModel)) {
+            state.model = DEFAULT_MODEL;
+            await window.storage.saveSetting('gemini_model', DEFAULT_MODEL);
+        } else {
+            state.model = savedModel;
+        }
+
+        state.schedule = window.PlanSnapScheduler.schedule(
+            state.tasks.filter((t) => !t.completed),
+            state.slots,
+            new Date()
+        );
+
+        updateConnectionUI();
+        renderSettings();
+        renderImagePreviews();
+        renderTasks();
+        renderSchedule();
+    }
+
+    function bindEvents() {
+        // Bottom Nav
+        el.navItems.forEach((btn) => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // Capture triggers
+        el.btnPickGallery?.addEventListener('click', () => el.fileInput?.click());
+        el.btnCameraDirect?.addEventListener('click', () => el.cameraInput?.click());
+        el.dropzone?.addEventListener('click', (e) => {
+            if (e.target === el.dropzone) el.fileInput?.click();
+        });
+
+        el.fileInput?.addEventListener('change', (e) => {
+            handleFilesSelected(e.target.files);
+            e.target.value = '';
+        });
+        el.cameraInput?.addEventListener('change', (e) => {
+            handleFilesSelected(e.target.files);
+            e.target.value = '';
+        });
+
+        // Drag & drop
+        el.dropzone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            el.dropzone.classList.add('dragover');
+        });
+        el.dropzone?.addEventListener('dragleave', () => {
+            el.dropzone.classList.remove('dragover');
+        });
+        el.dropzone?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            el.dropzone.classList.remove('dragover');
+            handleFilesSelected(e.dataTransfer.files);
+        });
+
+        // Remove preview
+        el.previewGrid?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.preview-remove');
+            if (!btn) return;
+            const idx = Number(btn.dataset.idx);
+            state.images.splice(idx, 1);
+            renderImagePreviews();
+        });
+
+        // Presets & Scan
+        el.btnLoadPresetStudent?.addEventListener('click', () => loadPreset('student'));
+        el.btnLoadPresetJudge?.addEventListener('click', () => loadPreset('judge'));
+        el.btnScan?.addEventListener('click', runExtraction);
+        el.btnGotoSettings?.addEventListener('click', () => switchTab('settings'));
+
+        // Tasks interactions
+        el.btnAddManualTask?.addEventListener('click', () => openTaskModal(null));
+
+        el.clarificationArea?.addEventListener('click', async (e) => {
+            const chip = e.target.closest('.clarify-chip');
+            if (!chip) return;
+            const taskId = chip.dataset.taskId;
+            const optIdx = Number(chip.dataset.optIdx);
+            const task = state.tasks.find((t) => t.id === taskId);
+            if (!task || !task.clarification_options?.[optIdx]) return;
+
+            const chosen = task.clarification_options[optIdx];
+            task.deadline_iso = chosen.deadline_iso;
+            task.needs_clarification = false;
+            await recomputeAndPersist();
+            showToast(`Đã chốt hạn: ${chosen.label}`, 'success');
+        });
+
+        el.tasksContainer?.addEventListener('click', async (e) => {
+            const checkBtn = e.target.closest('.task-check-btn');
+            if (checkBtn) {
+                const task = state.tasks.find((t) => t.id === checkBtn.dataset.id);
+                if (task) {
+                    task.completed = !task.completed;
+                    await recomputeAndPersist();
+                }
+                return;
+            }
+
+            const editBtn = e.target.closest('.btn-edit-task');
+            if (editBtn) {
+                openTaskModal(editBtn.dataset.id);
+                return;
+            }
+
+            const delBtn = e.target.closest('.btn-del-task');
+            if (delBtn) {
+                state.tasks = state.tasks.filter((t) => t.id !== delBtn.dataset.id);
+                await recomputeAndPersist();
+                showToast('Đã xóa đầu việc.', 'info');
+            }
+        });
+
+        // Modal form
+        el.btnModalClose?.addEventListener('click', closeTaskModal);
+        el.btnModalCancel?.addEventListener('click', closeTaskModal);
+        el.taskModalBackdrop?.addEventListener('click', (e) => {
+            if (e.target === el.taskModalBackdrop) closeTaskModal();
+        });
+        el.taskModalForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = el.modalTaskId.value.trim();
+            const title = el.modalTaskTitle.value.trim();
+            const dlVal = el.modalTaskDeadline.value;
+            const duration = Math.max(15, Number(el.modalTaskDuration.value) || 60);
+            const deadlineIso = dlVal ? new Date(dlVal).toISOString() : null;
+
+            if (!title) return;
+
+            if (id) {
+                const existing = state.tasks.find((t) => t.id === id);
+                if (existing) {
+                    existing.title = title;
+                    existing.deadline_iso = deadlineIso;
+                    existing.estimated_minutes = duration;
+                    existing.needs_clarification = false;
+                }
+                showToast('Đã cập nhật đầu việc.', 'success');
+            } else {
+                state.tasks.push({
+                    id: `manual-${Date.now()}`,
+                    title,
+                    deadline_iso: deadlineIso,
+                    estimated_minutes: duration,
+                    source_quote: 'Thêm thủ công',
+                    needs_clarification: false,
+                    completed: false
+                });
+                showToast('Đã thêm đầu việc mới.', 'success');
+            }
+
+            closeTaskModal();
+            await recomputeAndPersist();
+        });
+
+        // Schedule Week Strip & Export
+        el.weekStrip?.addEventListener('click', (e) => {
+            const pill = e.target.closest('.week-day-pill');
+            if (!pill) return;
+            state.selectedDayKey = pill.dataset.dayKey || 'all';
+            renderSchedule();
+        });
+
+        el.btnExportIcs?.addEventListener('click', () => {
+            if (!state.schedule.length) return;
+            window.ICalExporter.downloadIcsFile(state.schedule);
+            showToast('Đã xuất tệp lịch .ics!', 'success');
+        });
+
+        // Settings
+        el.btnToggleKeyVis?.addEventListener('click', () => {
+            if (!el.apiKeyInput) return;
+            el.apiKeyInput.type = el.apiKeyInput.type === 'password' ? 'text' : 'password';
+        });
+
+        el.btnSaveKey?.addEventListener('click', async () => {
+            const key = (el.apiKeyInput?.value || '').trim();
+            const model = el.modelSelect?.value || DEFAULT_MODEL;
+            state.apiKey = key;
+            state.model = model;
+            await window.storage.saveSetting('gemini_api_key', key);
+            await window.storage.saveSetting('gemini_model', model);
+            updateConnectionUI();
+            showToast(key ? 'Đã lưu API Key và Model.' : 'Đã chuyển về chế độ Demo.', 'success');
+        });
+
+        el.btnTestKey?.addEventListener('click', async () => {
+            const key = (el.apiKeyInput?.value || '').trim();
+            const model = el.modelSelect?.value || DEFAULT_MODEL;
+            if (!key) {
+                showToast('Vui lòng nhập Gemini API Key trước.', 'warning');
+                return;
+            }
+            el.btnTestKey.disabled = true;
+            const origText = el.btnTestKey.textContent;
+            el.btnTestKey.textContent = 'Đang thử...';
+            try {
+                const res = await window.VisionAgent.testApiKey(key, model);
+                const sec = ((res.elapsedMs || 0) / 1000).toFixed(2);
+                state.apiKey = key;
+                state.model = res.model || model;
+                if (el.modelSelect && res.model) el.modelSelect.value = res.model;
+                await window.storage.saveSetting('gemini_api_key', state.apiKey);
+                await window.storage.saveSetting('gemini_model', state.model);
+                updateConnectionUI();
+                showToast(`Kết nối thành công (${res.model} · ${sec}s)!`, 'success');
+            } catch (err) {
+                showToast(`Kết nối thất bại: ${err.message}`, 'error');
+            } finally {
+                el.btnTestKey.disabled = false;
+                el.btnTestKey.textContent = origText;
+            }
+        });
+
+        el.slotToggles.forEach((toggle) => {
+            toggle.addEventListener('change', async () => {
+                const slot = toggle.dataset.slot;
+                state.slots[slot] = toggle.checked;
+                await window.storage.saveSetting('available_slots', state.slots);
+                await recomputeAndPersist();
+                showToast('Đã cập nhật lịch theo khung giờ mới.', 'info');
+            });
+        });
+
+        el.btnClearDb?.addEventListener('click', () => {
+            if (el.clearConfirmBox) el.clearConfirmBox.hidden = false;
+        });
+        el.btnClearCancel?.addEventListener('click', () => {
+            if (el.clearConfirmBox) el.clearConfirmBox.hidden = true;
+        });
+        el.btnClearConfirm?.addEventListener('click', async () => {
+            await window.storage.clearAll();
+            state.images = [];
+            state.tasks = [];
+            state.schedule = [];
+            state.apiKey = '';
+            state.model = DEFAULT_MODEL;
+            state.slots = { ...DEFAULT_SLOTS };
+            state.selectedDayKey = 'all';
+            if (el.clearConfirmBox) el.clearConfirmBox.hidden = true;
+            updateConnectionUI();
+            renderSettings();
+            renderImagePreviews();
+            renderTasks();
+            renderSchedule();
+            showToast('Đã xóa toàn bộ dữ liệu cục bộ.', 'info');
+        });
+
+        // Bridge for desktop simulator parent frame
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.action === 'load-preset') {
+                loadPreset(data.preset || 'student');
+            } else if (data.action === 'switch-tab' && data.tab) {
+                switchTab(data.tab);
+            } else if (data.action === 'export-ics') {
+                if (state.schedule.length) {
+                    window.ICalExporter.downloadIcsFile(state.schedule);
+                    showToast('Đã xuất tệp lịch .ics!', 'success');
+                } else {
+                    switchTab('schedule');
+                    showToast('Chưa có lịch để xuất .ics.', 'warning');
+                }
+            }
+        });
+    }
+
+    async function init() {
+        bindEvents();
+        await loadPersistedState();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+})();
