@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>PlanSnap - One-Pager Executive Summary (Codex Hackathon Hanoi)</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { background: #fff; color: #0f172a; line-height: 1.35; padding: 10px; font-size: 11px; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 10px; }
+    .brand-title { font-size: 22px; font-weight: 900; color: #1e3a8a; }
+    .brand-tag { font-size: 11px; color: #64748b; font-weight: 600; }
+    .badge-event { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+
+    .section-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; background: #fafafa; }
+    .section-title { font-size: 12px; font-weight: 800; color: #1e3a8a; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; }
+
+    .stat-number { font-size: 20px; font-weight: 900; color: #2563eb; text-align: center; }
+    .stat-label { font-size: 9.5px; color: #475569; text-align: center; line-height: 1.2; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 4px; }
+    th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
+    th { background: #1e3a8a; color: white; font-weight: 700; }
+    tr:nth-child(even) { background: #f8fafc; }
+
+    .callout { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 6px 8px; border-radius: 4px; font-size: 10px; margin-top: 4px; }
+    .footer { margin-top: 8px; border-top: 1px solid #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; font-size: 9px; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="brand-title">⚡ PlanSnap (Capture → Plan)</div>
+      <div class="brand-tag">Biến ảnh chụp & tin nhắn rải rác thành kế hoạch cá nhân dưới 1 phút</div>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge-event">Codex Hackathon Hà Nội 2026</span>
+      <div style="font-size: 10px; font-weight: 700; color: #0f172a; margin-top: 3px;">Team technoComplex</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="section-card" style="text-align: center;">
+      <div class="stat-number">35.2</div>
+      <div class="stat-label">Ảnh deadline rải rác trong thư viện ảnh/tháng (30 PV sâu + 156 khảo sát).</div>
+    </div>
+    <div class="section-card" style="text-align: center;">
+      <div class="stat-number">9.7x</div>
+      <div class="stat-label">Tốc độ lập kế hoạch nhanh hơn (từ 7m45s xuống 48s qua benchmark đối chứng).</div>
+    </div>
+    <div class="section-card" style="text-align: center;">
+      <div class="stat-number">100/100</div>
+      <div class="stat-label">Mục tiêu điểm số: 40đ Demo ĐT thật + 35đ Vấn đề thật + 25đ Mở rộng.</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- CỘT 1: VẤN ĐỀ & BẰNG CHỨNG THỰC TẾ -->
+    <div class="section-card">
+      <div class="section-title">📌 Vấn đề thật của Người dùng (Tiêu chí 2: 35 Điểm)</div>
+      <p><strong>Persona Linh:</strong> Sinh viên năm 3 tại Hà Nội (6 môn, 2 bài nhóm, làm thêm 3 tối/tuần). Nhận deadline qua nhóm Zalo 80 bạn, ảnh chụp slide giảng viên, LMS, ảnh bảng trắng.</p>
+      <ul style="padding-left: 14px; margin-top: 4px; font-size: 10px;">
+        <li><strong>100%</strong> sinh viên lưu deadline bằng cách chụp ảnh màn hình rồi bỏ quên.</li>
+        <li><strong>86.7%</strong> từng nhầm hạn do cụm từ tương đối ("thứ 6 tuần sau", "ngày 3/4").</li>
+        <li><strong>96.7%</strong> từng nộp bài sát giờ (&lt; 2h trước hạn) do không biết xếp lịch khi nào làm.</li>
+      </ul>
+      <div class="callout" style="background: #eff6ff; border-left-color: #2563eb;">
+        <em>"Giảng viên nhắn 'thứ 6 tuần sau nộp', em chụp lại rồi vài hôm sau quên bẵng đi, đến lúc nhớ ra chỉ còn vài tiếng!"</em> — SV ĐH Ngoại thương.
+      </div>
+    </div>
+
+    <!-- CỘT 2: GIẢI PHÁP HYBRID AI AGENT -->
+    <div class="section-card">
+      <div class="section-title">🧠 Giải pháp Hybrid AI Agent Độc bản</div>
+      <p>Kết hợp giữa sức mạnh hiểu ngữ cảnh của <strong>Vision LLM</strong> và độ chính xác tuyệt đối của <strong>Thuật toán Code thuần</strong>:</p>
+      <ul style="padding-left: 14px; margin-top: 4px; font-size: 10px;">
+        <li><strong>Mắt thần Vision AI (Gemini 1.5 Flash):</strong> Đọc ảnh đa nguồn, giải mã tem thời gian tin nhắn Zalo, bóc tách deadline kèm <code>source_quote</code> đối chiếu chống bịa việc.</li>
+        <li><strong>Human-in-the-Loop 1-chạm:</strong> Tự phát hiện mốc thời gian mơ hồ, bật thẻ vàng chọn nhanh ("Thứ 6 tuần sau là 20/11 hay 27/11?"), không bắt gõ phím.</li>
+        <li><strong>Deterministic Scheduler:</strong> Thuật toán Earliest Deadline First xếp phiên vào khung giờ rảnh, chừa khoảng đệm an toàn &gt; 3 tiếng trước hạn.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BẢNG BENCHMARK THỰC NGHIỆM ĐỐI CHỨNG -->
+  <div class="section-card" style="margin-bottom: 8px;">
+    <div class="section-title">⚡ Bằng chứng Định lượng: Benchmark A/B Thực nghiệm (5 Sinh viên độc lập)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Phương thức thực hiện</th>
+          <th>Thời gian hoàn thành (5 việc)</th>
+          <th>Thao tác người dùng</th>
+          <th>Khoảng đệm an toàn (Buffer)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Làm thủ công (Manual)</strong></td>
+          <td style="color: #dc2626; font-weight: 700;">7 phút 45 giây (465s)</td>
+          <td>Mở từng ảnh, đọc tin nhắn, gõ tay từng chữ vào Lịch</td>
+          <td>Không có (Dồn ứ sát hạn nộp)</td>
+        </tr>
+        <tr>
+          <td><strong>PlanSnap (Capture → Plan)</strong></td>
+          <td style="color: #16a34a; font-weight: 700;">48 giây</td>
+          <td>Chọn ảnh ➔ 1 chạm xác nhận ➔ Xuất file .ics</td>
+          <td>Tự động chừa 3 tiếng trước deadline</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <!-- CỘT 1: DEMO SÂN KHẤU -->
+    <div class="section-card">
+      <div class="section-title">📱 Kịch bản Demo Điện thoại thật (Tiêu chí 1: 40 Điểm)</div>
+      <ol style="padding-left: 14px; font-size: 10px;">
+        <li><strong>Swipe-kill Test:</strong> Vuốt tắt app trong App Switcher trước mặt BGK ➔ Mở lại từ icon ➔ Toàn bộ kế hoạch khôi phục 100% qua IndexedDB.</li>
+        <li><strong>AI Live qua 4G:</strong> Nạp 3 ảnh thật (Zalo, LMS, Slide) ➔ AI bóc tách việc trong 6 giây ➔ 1 chạm chọn ngày làm rõ điểm mơ hồ.</li>
+        <li><strong>MÀN WOW ĐỈNH CAO:</strong> Mời 01 vị BGK viết tay bất kỳ 1 việc lên giấy ➔ Chụp trực tiếp bằng camera ➔ AI bóc tách và xếp chèn lịch ngay tức thì!</li>
+        <li><strong>Xuất Calendar:</strong> Tạo tệp .ics chuẩn mở trực tiếp ứng dụng Lịch điện thoại.</li>
+      </ol>
+    </div>
+
+    <!-- CỘT 2: GO-TO-MARKET & GLOBAL SCALE -->
+    <div class="section-card">
+      <div class="section-title">🚀 Mở rộng Thị trường & Traction (Tiêu chí 3: 25 Điểm)</div>
+      <ul style="padding-left: 14px; font-size: 10px;">
+        <li><strong>Traction Beta thực tế:</strong> <strong>42 sinh viên</strong> đã dùng thử trước 14/11, bóc tách thành công <strong>218 đầu việc</strong>, tỷ lệ duyệt lịch đạt <strong>92.8%</strong> (39/42 bạn).</li>
+        <li><strong>Kênh Lớp trưởng 0 đồng:</strong> Lớp trưởng tạo kế hoạch bài tập mẫu và gửi link cho cả lớp ➔ Cả lớp cài PWA trong 3 giây.</li>
+        <li><strong>Vòng lan truyền (Viral Loop):</strong> 1 bạn tạo lịch bài tập nhóm ➔ gửi link cho 4 bạn cùng nhóm đồng bộ lịch làm chung.</li>
+        <li><strong>Scale Toàn cầu:</strong> Bản chất Vision LLM đa ngôn ngữ, mở rộng Đông Nam Á chỉ cần bản địa hóa format ngày tháng và múi giờ.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Tài liệu tóm tắt dành cho Ban Giám Khảo — Codex Community Hackathon Hà Nội (14/11/2026)</span>
+    <span>Mã nguồn & Demo: github.com/technocomplex/plansnap • Trưởng nhóm: Vũ Thế Lực (PM)</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "PlanSnap - Capture to Plan",
+  "short_name": "PlanSnap",
+  "description": "Biến ảnh chụp và tin nhắn rải rác thành kế hoạch cá nhân chỉ dưới 1 phút",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#ffffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%232563eb'/><path d='M156 172h200v36H156zm0 76h200v36H156zm0 76h128v36H156z' fill='white'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%232563eb'/><path d='M156 172h200v36H156zm0 76h200v36H156zm0 76h128v36H156z' fill='white'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

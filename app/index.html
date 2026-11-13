@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PlanSnap</title>
+
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PlanSnap">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%232563eb'/><path d='M156 172h200v36H156zm0 76h200v36H156zm0 76h128v36H156z' fill='white'/></svg>">
+
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <span id="toast-msg">Thông báo</span>
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <span class="brand-name">PlanSnap</span>
+    </div>
+    <button id="header-conn-pill" class="header-status" type="button" title="Trạng thái kết nối AI">
+      <span class="status-dot"></span>
+      <span id="header-conn-status">Chế độ mẫu</span>
+    </button>
+  </header>
+
+  <!-- App Main Content Container -->
+  <main class="app-container">
+
+    <!-- TAB 1: Chụp & Quét ảnh -->
+    <section id="tab-capture" class="tab-pane active">
+      <div class="card">
+        <div class="card-header-row">
+          <div>
+            <h2 class="card-title">Quét ảnh thông báo</h2>
+            <p class="card-desc">Chọn 1–5 ảnh chụp màn hình Zalo, LMS, slide hoặc chụp trực tiếp ghi chú. Ảnh được nén trên máy trước khi gửi.</p>
+          </div>
+        </div>
+
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Chọn ảnh từ thư viện">
+          <svg class="dropzone-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <div class="dropzone-text">Chọn ảnh từ thư viện</div>
+          <div class="dropzone-hint">Hỗ trợ PNG, JPG · Tối đa 5 ảnh</div>
+        </div>
+
+        <div class="capture-actions-row">
+          <button id="btn-camera-direct" class="btn btn-outline" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span>Chụp ảnh trực tiếp</span>
+          </button>
+        </div>
+
+        <input type="file" id="file-input" multiple accept="image/*" hidden>
+        <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
+
+        <div id="preview-grid" class="preview-grid"></div>
+
+        <button id="btn-scan" class="btn btn-primary" type="button" disabled>
+          <span>Trích xuất việc &amp; Xếp lịch</span>
+        </button>
+
+        <div id="progress-container" class="progress-container">
+          <div class="progress-header">
+            <span id="progress-text">Đang xử lý ảnh...</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="progress-bar" class="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <div id="api-missing-alert" class="inline-alert" hidden>
+          <div class="inline-alert-text">
+            Chưa có Gemini API Key để phân tích ảnh thật của bạn.
+          </div>
+          <button id="btn-goto-settings" class="btn-link" type="button">Nhập API Key</button>
+        </div>
+      </div>
+
+      <div class="card card-subtle">
+        <div class="preset-label">Ảnh mẫu thử nhanh</div>
+        <div class="preset-bar">
+          <button id="btn-load-preset-student" class="btn-preset" type="button">
+            3 ảnh Zalo / LMS / Slide
+          </button>
+          <button id="btn-load-preset-judge" class="btn-preset" type="button">
+            Ghi chú viết tay
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Danh sách đầu việc & Làm rõ mốc mơ hồ -->
+    <section id="tab-tasks" class="tab-pane">
+      <div id="clarification-area"></div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2 class="card-title">Đầu việc (<span id="task-count">0</span>)</h2>
+          <button id="btn-add-manual-task" class="btn-chip" type="button">+ Thêm việc</button>
+        </div>
+        <p class="card-desc">Mỗi đầu việc đi kèm câu trích nguyên văn từ ảnh để đối chiếu. Chạm "Sửa" để điều chỉnh thời hạn hoặc thời lượng.</p>
+        <div id="tasks-container" class="stack-list"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Lịch làm việc tuần đã xếp -->
+    <section id="tab-schedule" class="tab-pane">
+      <div class="card">
+        <div class="card-header-row">
+          <div>
+            <h2 class="card-title">Lịch làm việc</h2>
+            <p class="card-desc">Tự động xếp vào khung giờ rảnh bạn đã chọn, ưu tiên hạn gần nhất và chừa khoảng đệm 3 giờ trước hạn.</p>
+          </div>
+        </div>
+
+        <button id="btn-export-ics" class="btn btn-primary" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Tải tệp lịch (.ics)</span>
+        </button>
+      </div>
+
+      <div class="day-filter-bar">
+        <button class="day-pill active" data-filter="all" type="button">Tất cả</button>
+        <button class="day-pill" data-filter="today" type="button">Hôm nay</button>
+        <button class="day-pill" data-filter="upcoming" type="button">Sắp tới</button>
+      </div>
+
+      <div id="schedule-container" class="stack-list"></div>
+    </section>
+
+    <!-- TAB 4: Cài đặt & Quản trị dữ liệu -->
+    <section id="tab-settings" class="tab-pane">
+      <div class="card">
+        <h2 class="card-title">Kết nối Gemini Vision API</h2>
+        <p class="card-desc">Nhập Google AI Studio API Key để phân tích ảnh chụp thật. Key được lưu cục bộ trong IndexedDB trên thiết bị này.</p>
+
+        <div class="form-group">
+          <label class="form-label" for="api-key-input">API Key</label>
+          <input type="password" id="api-key-input" class="input-field" placeholder="AIzaSy...">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="model-select">Model</label>
+          <select id="model-select" class="input-field">
+            <option value="gemini-2.5-flash">gemini-2.5-flash (Khuyên dùng)</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          </select>
+        </div>
+
+        <div class="btn-row">
+          <button id="btn-test-key" class="btn btn-outline" type="button">Kiểm tra kết nối</button>
+          <button id="btn-save-key" class="btn btn-primary" type="button">Lưu cài đặt</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Khung giờ rảnh trong tuần</h2>
+        <p class="card-desc">Chọn các khung giờ bạn có thể làm bài. Lịch tuần sẽ tự động cập nhật ngay khi bạn thay đổi.</p>
+        <div class="avail-grid">
+          <button type="button" class="avail-toggle active" data-slot="weekday-eve">
+            <span>Tối T2 – T6 (19:30 – 22:30)</span>
+            <span class="toggle-indicator"></span>
+          </button>
+          <button type="button" class="avail-toggle active" data-slot="sat-morn">
+            <span>Sáng Thứ 7 (08:30 – 11:30)</span>
+            <span class="toggle-indicator"></span>
+          </button>
+          <button type="button" class="avail-toggle active" data-slot="sat-aft">
+            <span>Chiều Thứ 7 (14:00 – 17:00)</span>
+            <span class="toggle-indicator"></span>
+          </button>
+          <button type="button" class="avail-toggle active" data-slot="sun-morn">
+            <span>Sáng Chủ Nhật (08:30 – 11:30)</span>
+            <span class="toggle-indicator"></span>
+          </button>
+          <button type="button" class="avail-toggle active" data-slot="sun-aft">
+            <span>Chiều Chủ Nhật (14:00 – 17:00)</span>
+            <span class="toggle-indicator"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Dữ liệu cục bộ (IndexedDB)</h2>
+        <p class="card-desc">Toàn bộ đầu việc và lịch được lưu ngoại tuyến trên trình duyệt, giữ nguyên khi đóng và mở lại ứng dụng.</p>
+        <button id="btn-clear-db" class="btn btn-danger-outline" type="button">Xóa toàn bộ dữ liệu</button>
+        <div id="clear-confirm-box" class="inline-alert" hidden>
+          <span class="inline-alert-text">Xác nhận xóa toàn bộ đầu việc và lịch?</span>
+          <div style="display:flex; gap:8px;">
+            <button id="btn-clear-cancel" class="btn-link" type="button" style="color: var(--text-secondary);">Hủy</button>
+            <button id="btn-clear-confirm" class="btn-link" type="button" style="color: var(--accent-red);">Xóa</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Sheet Modal: Thêm / Sửa đầu việc -->
+  <div id="task-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h3 id="modal-title" class="modal-title">Chỉnh sửa đầu việc</h3>
+        <button id="btn-modal-close" class="icon-btn" type="button" aria-label="Đóng">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <form id="task-modal-form" class="modal-body">
+        <input type="hidden" id="modal-task-id">
+        <div class="form-group">
+          <label class="form-label" for="modal-task-title">Tên đầu việc</label>
+          <input type="text" id="modal-task-title" class="input-field" required placeholder="Ví dụ: Nộp báo cáo môn Kinh tế">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="modal-task-deadline">Hạn chót</label>
+          <input type="datetime-local" id="modal-task-deadline" class="input-field" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="modal-task-duration">Thời lượng ước tính (phút)</label>
+          <select id="modal-task-duration" class="input-field">
+            <option value="30">30 phút</option>
+            <option value="45">45 phút</option>
+            <option value="60">60 phút (1 giờ)</option>
+            <option value="90">90 phút (1.5 giờ)</option>
+            <option value="120">120 phút (2 giờ)</option>
+            <option value="180">180 phút (3 giờ)</option>
+            <option value="240">240 phút (4 giờ)</option>
+          </select>
+        </div>
+        <div class="btn-row" style="margin-top: 8px;">
+          <button id="btn-modal-cancel" class="btn btn-outline" type="button">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu đầu việc</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav" aria-label="Điều hướng chính">
+    <button class="nav-item active" data-tab="tab-capture" type="button">
+      <svg class="nav-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      <span class="nav-label">Quét ảnh</span>
+    </button>
+    <button class="nav-item" data-tab="tab-tasks" type="button">
+      <svg class="nav-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 11l3 3L22 4"></path>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+      </svg>
+      <span class="nav-label">Đầu việc</span>
+    </button>
+    <button class="nav-item" data-tab="tab-schedule" type="button">
+      <svg class="nav-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span class="nav-label">Lịch tuần</span>
+    </button>
+    <button class="nav-item" data-tab="tab-settings" type="button">
+      <svg class="nav-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span class="nav-label">Cài đặt</span>
+    </button>
+  </nav>
+
+  <script src="./js/storage.js"></script>
+  <script src="./js/compressor.js"></script>
+  <script src="./js/scheduler.js"></script>
+  <script src="./js/vision-agent.js"></script>
+  <script src="./js/ical-export.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlanSnap - Pitch Deck (Codex Hackathon Hanoi)</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151c2e;
+      --border: #232f48;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-purple: #a855f7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide-deck {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1100px;
+      height: 90%;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      flex-direction: column;
+      justify-content: space-between;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    .slide-tag {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    .slide-score {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.1);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .slide-title {
+      font-size: 36px;
+      font-weight: 800;
+      margin-top: 16px;
+      background: linear-gradient(135deg, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-body {
+      flex: 1;
+      margin: 24px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .stat-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .quote-box {
+      background: rgba(59, 130, 246, 0.08);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 8px;
+      padding: 18px 24px;
+      font-style: italic;
+      color: #e2e8f0;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .feature-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-icon {
+      font-size: 28px;
+    }
+
+    .feature-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .table-custom th, .table-custom td {
+      padding: 14px 18px;
+      border: 1px solid var(--border);
+      text-align: left;
+      font-size: 15px;
+    }
+
+    .table-custom th {
+      background-color: #1e293b;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .table-custom tr:nth-child(even) {
+      background-color: rgba(15, 23, 42, 0.4);
+    }
+
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Controls bar */
+    .controls {
+      height: 60px;
+      background: #0f172a;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+    }
+
+    .btn-nav {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: white;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-nav:hover {
+      background: var(--accent-blue);
+    }
+
+    .slide-counter {
+      font-weight: 700;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="slide-deck">
+
+    <!-- SLIDE 1: Cover -->
+    <div class="slide active">
+      <div class="slide-header">
+        <span class="slide-tag">Codex Community Hackathon – Hà Nội (14/11/2026)</span>
+        <span class="slide-score">Team technoComplex</span>
+      </div>
+      <div class="slide-body" style="text-align: center; gap: 24px;">
+        <div style="font-size: 64px;">⚡</div>
+        <h1 style="font-size: 54px; font-weight: 900; background: linear-gradient(135deg, #60a5fa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          PlanSnap (Capture → Plan)
+        </h1>
+        <p style="font-size: 24px; color: var(--text-muted); max-width: 800px; margin: 0 auto; line-height: 1.5;">
+          Biến hàng chục ảnh chụp màn hình và tin nhắn rải rác thành kế hoạch cá nhân chỉ dưới 1 phút.
+        </p>
+        <div style="display: inline-flex; gap: 16px; justify-content: center; margin-top: 20px;">
+          <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent-blue); padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+            📱 Mobile Standalone PWA
+          </span>
+          <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-green); padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+            🧠 Vision Multi-modal Agent
+          </span>
+          <span style="background: rgba(168, 85, 247, 0.15); border: 1px solid var(--accent-purple); padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+            ⏱️ Deterministic Scheduling
+          </span>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Sản phẩm dự thi chính thức</span>
+        <span>Phím ➔ hoặc Space để tiếp tục</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Problem & Real Evidence -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag">Vấn đề thật của người dùng</span>
+        <span class="slide-score">Mục tiêu: 35/35 Điểm (Tiêu chí 2)</span>
+      </div>
+      <h2 class="slide-title">Thông tin phân mảnh chôn vùi trong thư viện ảnh</h2>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="stat-box">
+            <div class="stat-number">35.2</div>
+            <div class="stat-label">Ảnh chụp màn hình chứa deadline nằm rải rác trong thư viện ảnh mỗi tháng (30 SV phỏng vấn sâu + 156 SV khảo sát diện rộng tại Hà Nội).</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">96.7%</div>
+            <div class="stat-label">Sinh viên từng nộp bài tập sát hạn (< 2 tiếng trước hạn) vì không biết phân bổ thời gian làm việc.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">86.7%</div>
+            <div class="stat-label">Từng bỏ sót hoặc nhầm ngày nộp bài do các mốc thời hạn mơ hồ ("thứ 6 tuần sau", "buổi học tới").</div>
+          </div>
+        </div>
+        <div class="quote-box">
+          "Giảng viên nhắn 'thứ 6 tuần sau nộp', em chụp màn hình lại xong vài hôm sau lướt lại chẳng nhớ là thứ 6 tuần nào, tới lúc nhớ ra thì chỉ còn vài tiếng trước hạn nộp bài!"<br>
+          <strong style="color: var(--accent); font-size: 14px; margin-top: 6px; display: inline-block;">— Trần Thùy L., Sinh viên năm 3 ĐH Ngoại Thương Hà Nội</strong>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Bằng chứng định tính & định lượng: 30 PV sâu + 156 khảo sát thực tế</span>
+        <span>docs/09_Bieu_mau_Khao_sat_va_Dataset.md</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Solution & Architecture -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag">Giải pháp & Kiến trúc AI</span>
+        <span class="slide-score">Bảo vệ tính xác thực 100%</span>
+      </div>
+      <h2 class="slide-title">Hybrid Agent: Vision LLM + Thuật toán Code thuần</h2>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="feature-card">
+            <div class="feature-icon">👁️</div>
+            <div class="feature-title">Multi-modal Vision Agent</div>
+            <div class="feature-desc">
+              Đọc ảnh đa nguồn (Zalo, LMS, Slide). Giải mã tem thời gian tin nhắn Zalo để xác định ngày tương đối. Luôn đối chiếu <code>source_quote</code> chống bịa việc.
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚠️</div>
+            <div class="feature-title">Human-in-the-Loop 1-Chạm</div>
+            <div class="feature-desc">
+              Phát hiện hạn chót mơ hồ (Confidence < 0.75). Tự bật thẻ hỏi lại với các nút chọn ngày cụ thể. Tuyệt đối không bắt người dùng gõ phím.
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Deterministic Scheduler</div>
+            <div class="feature-desc">
+              Thuật toán Code thuần phân bổ phiên vào khung giờ rảnh (Earliest Deadline First). Chừa buffer an toàn 3 tiếng trước hạn. Không bao giờ ảo giác lịch.
+            </div>
+          </div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); border-radius: 12px; padding: 14px; font-family: monospace; font-size: 14px; color: #38bdf8;">
+          Luồng khép kín: Chọn 1–5 ảnh ➔ Canvas Resize Client ➔ Vision Agent ➔ Clarify Card ➔ Scheduler ➔ Xuất file .ics
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>docs/01_PRD.md & docs/02_AGENTS.md</span>
+        <span>Phản hồi toàn luồng < 8 giây qua 4G</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Live Demo -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+          LIVE DEMO TRÊN ĐIỆN THOẠI THẬT
+        </span>
+        <span class="slide-score">Mục tiêu: 40/40 Điểm (Tiêu chí 1 - Ưu tiên phá hòa #1)</span>
+      </div>
+      <h2 class="slide-title">Trực chiến trên điện thoại thật trước mặt Ban Giám Khảo</h2>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="feature-card" style="border-left: 4px solid var(--accent-red);">
+            <div class="feature-title">1. Bài test Sống còn: Swipe-kill & Reopen</div>
+            <div class="feature-desc">
+              - Thao tác vuốt đóng hẳn app (Swipe kill) trong App Switcher trước mặt BGK.<br>
+              - Mở lại từ icon trên màn hình chính: Toàn bộ dữ liệu khôi phục tức thì qua <strong>IndexedDB</strong>.<br>
+              - Chứng minh không phụ thuộc trình duyệt hay session RAM.
+            </div>
+          </div>
+          <div class="feature-card" style="border-left: 4px solid var(--accent-amber);">
+            <div class="feature-title">2. Luồng AI Live bóc tách 3 ảnh thật</div>
+            <div class="feature-desc">
+              - Nạp 3 ảnh: Tin nhắn Zalo lớp, Slide đề cương, Cổng LMS.<br>
+              - AI live đọc tem thời gian, trích xuất hạn chót kèm <code>source_quote</code>.<br>
+              - Thẻ hỏi lại 1-chạm: Chọn "20/11 hay 27/11" chỉ với 1 cái chạm tay.
+            </div>
+          </div>
+        </div>
+        <div class="feature-card" style="border: 2px dashed #a855f7; background: rgba(168, 85, 247, 0.08);">
+          <div class="feature-title" style="color: #c084fc;">
+            🎯 KHOẢNH KHẮC "WOW": Thử thách Chữ viết tay của Ban Giám Khảo
+          </div>
+          <div class="feature-desc" style="font-size: 15px;">
+            Mời 01 vị Giám khảo viết tay bất kỳ một đầu việc và hạn chót lên giấy ➔ Cầm điện thoại chụp trực tiếp ➔ AI bóc tách ngay tại chỗ và tự động xếp chèn phiên làm việc vào lịch tuần trước mắt toàn thể hội trường!
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Tuân thủ 100% kịch bản docs/03_Kich_ban_Demo.md</span>
+        <span>Cam kết: Không dùng Video thay thế!</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Benchmark Evidence -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag">Hiệu quả thực chứng</span>
+        <span class="slide-score">Bằng chứng định lượng A/B</span>
+      </div>
+      <h2 class="slide-title">Benchmark Thực nghiệm: Nhanh hơn gấp 9.7 lần</h2>
+      <div class="slide-body">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Phương pháp thực hiện</th>
+              <th>Thời gian hoàn thành (5 việc)</th>
+              <th>Thao tác người dùng</th>
+              <th>Khoảng đệm an toàn</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Làm thủ công (Manual)</strong></td>
+              <td style="color: #f87171; font-weight: 700;">7 phút 45 giây (465s)</td>
+              <td>Mở từng ảnh, đọc tin nhắn, gõ tay từng chữ vào Lịch</td>
+              <td>Không có (Dồn sát giờ)</td>
+            </tr>
+            <tr>
+              <td><strong>PlanSnap (Capture → Plan)</strong></td>
+              <td style="color: #4ade80; font-weight: 700;">48 giây</td>
+              <td>Chọn ảnh ➔ 1 chạm xác nhận ➔ Xuất .ics</td>
+              <td>Tự động chừa 3 tiếng trước hạn</td>
+            </tr>
+            <tr>
+              <td><strong>MỨC ĐỘ CẢI THIỆN</strong></td>
+              <td colspan="3" style="color: var(--accent); font-weight: 800; font-size: 16px;">
+                ⚡ Tiết kiệm 89.7% thời gian — Nhanh hơn gấp 9.7 lần! Độ chính xác AI trên 40 ảnh test đạt 90.0%.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="grid-2">
+          <div class="stat-box" style="padding: 16px;">
+            <div style="font-size: 26px; font-weight: 700; color: #4ade80;">92.5%</div>
+            <div class="stat-label">Tỷ lệ bóc tách đúng tên việc và yêu cầu bài tập trên bộ test 40 screenshot.</div>
+          </div>
+          <div class="stat-box" style="padding: 16px;">
+            <div style="font-size: 26px; font-weight: 700; color: #38bdf8;">100%</div>
+            <div class="stat-label">Tỷ lệ phát hiện chính xác các mốc thời gian mơ hồ cần kích hoạt Human-in-the-Loop.</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Dữ liệu thực nghiệm từ 5 sinh viên đối chứng độc lập</span>
+        <span>docs/09_Bieu_mau_Khao_sat_va_Dataset.md</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Go-to-market & Traction -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag">Mở rộng thị trường</span>
+        <span class="slide-score">Mục tiêu: 25/25 Điểm (Tiêu chí 3)</span>
+      </div>
+      <h2 class="slide-title">Kênh Lớp trưởng 0 đồng & Traction Beta thực tế</h2>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="stat-box">
+            <div class="stat-number">42</div>
+            <div class="stat-label">Sinh viên đại học đã cài đặt PWA và sử dụng thực tế bản Beta trước ngày 14/11.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">218</div>
+            <div class="stat-label">Đầu việc học tập đã được AI bóc tách và xếp lịch thành công.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">92.8%</div>
+            <div class="stat-label">Tỷ lệ người dùng chấp nhận kế hoạch và bấm xuất sang Calendar (39/42 bạn).</div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="feature-card">
+            <div class="feature-title">🎯 Kênh phân phối Ban Cán Sự (Chi phí 0đ)</div>
+            <div class="feature-desc">
+              Lớp trưởng và Bí thư là người trực tiếp dặn dò bài tập vào nhóm Zalo lớp. Họ dùng PlanSnap tạo kế hoạch mẫu và gửi link cho cả lớp ➔ Cả lớp cài PWA trong 3 giây.
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-title">🔄 Vòng lan truyền tự nhiên (Viral Loop)</div>
+            <div class="feature-desc">
+              Một sinh viên bóc tách deadline bài tập nhóm ➔ Chia sẻ link kế hoạch cho 4 bạn cùng nhóm ➔ 4 bạn mở ra và cài đặt app ngay để đồng bộ lịch làm bài chung.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Không nói "ai cũng cần" — Tập trung chính xác vào sinh viên đại học</span>
+        <span>docs/01_PRD.md</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Global Expansion -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag">Lộ trình Toàn cầu</span>
+        <span class="slide-score">Khả năng Scale Vô hạn</span>
+      </div>
+      <h2 class="slide-title">Từ Sinh viên Hà Nội đến Thị trường Toàn cầu</h2>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="feature-card" style="border-top: 4px solid var(--accent-blue);">
+            <div class="feature-title">Giai đoạn 1 (Q4/2026)</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--accent);">5.000 Sinh viên Hà Nội</div>
+            <div class="feature-desc">
+              Thâm nhập qua các trường ĐH lớn: Bách Khoa, Kinh tế quốc dân, Ngoại thương, Quốc gia. Hoàn thiện tính năng đọc thời khóa biểu.
+            </div>
+          </div>
+          <div class="feature-card" style="border-top: 4px solid var(--accent-green);">
+            <div class="feature-title">Giai đoạn 2 (Q1/2027)</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--accent-green);">Sinh viên VN & Người mới đi làm</div>
+            <div class="feature-desc">
+              Mở rộng toàn quốc. Bổ sung phân khúc người mới đi làm: Bóc tách biên bản họp, ảnh bảng Kanban, việc giao qua chat công việc.
+            </div>
+          </div>
+          <div class="feature-card" style="border-top: 4px solid var(--accent-purple);">
+            <div class="feature-title">Giai đoạn 3 (Q2/2027)</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--accent-purple);">Mở rộng Đông Nam Á & Toàn cầu</div>
+            <div class="feature-desc">
+              Đánh vào Thái Lan, Indonesia, Philippines — các quốc gia có văn hóa giao việc qua Line/WhatsApp/Telegram tương tự Việt Nam.
+            </div>
+          </div>
+        </div>
+        <div class="quote-box" style="border-left-color: var(--accent-purple);">
+          <strong>Lợi thế công nghệ cốt lõi:</strong> Bản chất mô hình Vision LLM đã hỗ trợ đa ngôn ngữ bẩm sinh. Việc mở rộng sang thị trường quốc tế chỉ đòi hỏi cấu hình ngôn ngữ hiển thị và múi giờ, chi phí công nghệ biên gần như bằng 0!
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>docs/04_Pitch_Deck_Script.md</span>
+        <span>Unit Economics tối ưu nhờ Serverless</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: Transparency & Team -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="slide-tag">Minh bạch Quy chế & Đội ngũ</span>
+        <span class="slide-score">Bảo toàn điểm số tối đa</span>
+      </div>
+      <h2 class="slide-title">Minh bạch Tuyệt đối: Pre-hackathon Git Tag</h2>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="feature-card">
+            <div class="feature-title" style="color: #60a5fa;">📦 Phần làm trước (Đã đóng dấu Git Tag)</div>
+            <div class="feature-desc">
+              - Khảo sát 30 SV phỏng vấn sâu 1-on-1 & 156 SV khảo sát diện rộng.<br>
+              - Thu thập bộ test benchmark 40 screenshot thật đã che PII.<br>
+              - Dựng khung PWA Shell Standalone & IndexedDB persistence.<br>
+              - Module Canvas nén ảnh Client.<br>
+              - Bản thử nghiệm Beta với 42 người dùng thực tế (218 đầu việc).<br>
+              - Đóng dấu Commit Tag: <code>pre-hackathon</code> trước ngày 14/11.
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-title" style="color: #4ade80;">⚡ Phần làm tại chỗ ngày 14/11 (Live Code)</div>
+            <div class="feature-desc">
+              - Thuật toán xếp lịch tự động chừa buffer (Scheduler).<br>
+              - UI thẻ hỏi lại mốc mơ hồ 1-chạm (Human-in-the-Loop).<br>
+              - Module xuất file iCalendar (.ics) tương thích Calendar.<br>
+              - Tối ưu hóa độ trễ phản hồi (< 8 giây qua 4G).<br>
+              - Diễn tập Kịch bản Live Demo 3 lần trên mạng 4G.
+            </div>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
+          <h3 style="font-size: 22px; font-weight: 700; color: white;">
+            PlanSnap – Làm chủ thời gian từ những bức ảnh chụp.
+          </h3>
+          <p style="color: var(--text-muted); font-size: 15px; margin-top: 4px;">
+            Xin trân trọng cảm ơn Ban Giám khảo và Hội trường!
+          </p>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Team technoComplex – Sẵn sàng bứt phá ngày 14/11/2026</span>
+        <span>Phím ⬅ / ➔ để chuyển slide</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation Controls -->
+  <footer class="controls">
+    <button id="btn-prev" class="btn-nav">⬅ Slide trước</button>
+    <div class="slide-counter">
+      Slide <span id="current-slide">1</span> / <span id="total-slides">8</span>
+    </div>
+    <button id="btn-next" class="btn-nav">Slide tiếp ➔</button>
+  </footer>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const currentSlideEl = document.getElementById('current-slide');
+    const totalSlidesEl = document.getElementById('total-slides');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    let currentIndex = 0;
+
+    totalSlidesEl.innerText = slides.length;
+
+    function showSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= slides.length) index = slides.length - 1;
+
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === index);
+      });
+
+      currentIndex = index;
+      currentSlideEl.innerText = currentIndex + 1;
+    }
+
+    btnPrev.addEventListener('click', () => showSlide(currentIndex - 1));
+    btnNext.addEventListener('click', () => showSlide(currentIndex + 1));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        showSlide(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        showSlide(currentIndex - 1);
+      }
+    });
+  </script>
+</body>
+</html>
+

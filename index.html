@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlanSnap — Biến ảnh chụp thông báo thành lịch làm việc</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .navbar-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding-left: 10px;
+      border-left: 1px solid var(--border);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .tab-btn:hover {
+      background: var(--subtle);
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 48px;
+    }
+
+    .section-view {
+      display: none;
+    }
+
+    .section-view.active {
+      display: block;
+    }
+
+    /* Split Product Showcase */
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 1fr 410px;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    .hero-title {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.18;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    .hero-desc {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 580px;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 9px;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    .btn-outline:hover {
+      background: var(--subtle);
+    }
+
+    /* Workflow Steps */
+    .workflow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .workflow-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .step-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: var(--subtle);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    /* Evidence Strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-val {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-lbl {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* Device Frame */
+    .device-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .phone-frame {
+      width: 390px;
+      height: 760px;
+      background: #0f172a;
+      border-radius: 44px;
+      padding: 10px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.14);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-screen {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-radius: 35px;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    .phone-screen iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .demo-toolbar {
+      width: 390px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tool-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* Mobile QR Tab */
+    .lan-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 36px;
+      align-items: center;
+    }
+
+    .qr-box {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+      background: #ffffff;
+    }
+
+    .qr-box img {
+      width: 214px;
+      height: 214px;
+      display: block;
+    }
+
+    .qr-caption {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .url-pill {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 6px 12px;
+      background: var(--subtle);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    /* Document Grid */
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .doc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.15s;
+    }
+
+    .doc-card:hover {
+      border-color: var(--accent);
+    }
+
+    .doc-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .doc-desc {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    .doc-link {
+      margin-top: auto;
+      padding-top: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .embed-frame {
+      width: 100%;
+      height: 720px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .embed-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    @media (max-width: 960px) {
+      .showcase-grid {
+        grid-template-columns: 1fr;
+      }
+      .brand-tag {
+        display: none;
+      }
+      .lan-card {
+        grid-template-columns: 1fr;
+      }
+      .doc-grid {
+        grid-template-columns: 1fr;
+      }
+      .stats-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="./" class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </span>
+        <span class="brand-name">PlanSnap</span>
+        <span class="brand-tag">technoComplex · Codex Hackathon Hanoi</span>
+      </a>
+
+      <nav class="nav-tabs" aria-label="Chuyển mục">
+        <button class="tab-btn active" data-view="view-simulator" type="button">Ứng dụng</button>
+        <button class="tab-btn" data-view="view-phone" type="button">Thử trên điện thoại</button>
+        <button class="tab-btn" data-view="view-slides" type="button">Pitch Deck</button>
+        <button class="tab-btn" data-view="view-docs" type="button">Tài liệu</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- VIEW 1: PRODUCT + LIVE SIMULATOR -->
+    <section id="view-simulator" class="section-view active">
+      <div class="showcase-grid">
+        <div>
+          <span class="eyebrow">Capture → Plan · PWA &amp; Hybrid AI</span>
+          <h1 class="hero-title">Biến ảnh chụp deadline rải rác thành lịch làm việc dưới 1 phút.</h1>
+          <p class="hero-desc">
+            Sinh viên nhận thông báo bài tập qua Zalo, LMS, slide giảng viên và chụp màn hình để nhớ — rồi bỏ quên trong thư viện ảnh. PlanSnap đọc 1–5 ảnh cùng lúc, trích xuất việc kèm câu trích dẫn nguồn và xếp lịch vào khung giờ rảnh thực tế của bạn.
+          </p>
+
+          <div class="cta-row">
+            <a href="./app/" target="_blank" class="btn btn-primary">Mở ứng dụng toàn màn hình</a>
+            <a href="./docs/PRD_PlanSnap_v2.0.docx" class="btn btn-outline" download>Tải PRD (.docx)</a>
+            <a href="./docs/OnePager_Executive_Summary.html" target="_blank" class="btn btn-outline">Xem One-Pager A4</a>
+          </div>
+
+          <div class="workflow-list">
+            <div class="workflow-step">
+              <div class="step-index">1</div>
+              <div>
+                <div class="step-title">Chọn 1–5 ảnh hoặc chụp trực tiếp</div>
+                <div class="step-desc">Nén ảnh ngay trên thiết bị qua Canvas trước khi gửi để chạy ổn định trên mạng 4G.</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-index">2</div>
+              <div>
+                <div class="step-title">Trích xuất có bằng chứng &amp; hỏi lại 1 chạm</div>
+                <div class="step-desc">Vision AI gắn kèm <code>source_quote</code> chống bịa việc và bật thẻ chọn nhanh khi gặp hạn mơ hồ như "thứ 6 tuần sau".</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-index">3</div>
+              <div>
+                <div class="step-title">Xếp lịch xác định &amp; lưu bền vững</div>
+                <div class="step-desc">Thuật toán Earliest Deadline First xếp phiên vào đúng khung giờ rảnh, chừa đệm 3 giờ trước hạn, lưu IndexedDB và xuất <code>.ics</code>.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-strip">
+            <div class="stat-item">
+              <span class="stat-val">30 + 156</span>
+              <span class="stat-lbl">PV sâu 1-on-1 &amp; khảo sát SV</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">48s</span>
+              <span class="stat-lbl">So với 7m45s nhập tay (9.7x)</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">42</span>
+              <span class="stat-lbl">Sinh viên Beta (218 đầu việc)</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">90.0%</span>
+              <span class="stat-lbl">Độ chính xác trên 40 ảnh test</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Clean Device Preview -->
+        <div class="device-column">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <iframe id="app-iframe" src="./app/index.html" title="PlanSnap Mobile App"></iframe>
+            </div>
+          </div>
+
+          <div class="demo-toolbar">
+            <button id="btn-mock-student" class="tool-btn" type="button">Nạp 3 ảnh mẫu SV</button>
+            <button id="btn-mock-judge" class="tool-btn" type="button">Thử ảnh viết tay</button>
+            <button id="btn-mock-swipekill" class="tool-btn" type="button">Đóng &amp; mở lại app</button>
+            <button id="btn-mock-export" class="tool-btn" type="button">Xem lịch &amp; xuất .ics</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: REAL PHONE LAN CONNECTION -->
+    <section id="view-phone" class="section-view">
+      <div class="lan-card">
+        <div class="qr-box">
+          <img src="./qr_code.png" alt="Mã QR mở PlanSnap trên điện thoại">
+          <div class="qr-caption">Quét bằng camera điện thoại</div>
+        </div>
+        <div>
+          <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">Kiểm thử trên điện thoại thật qua Wi-Fi / Hotspot</h2>
+          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+            Đảm bảo điện thoại và máy tính đang dùng chung một mạng Wi-Fi hoặc Hotspot, sau đó thực hiện:
+          </p>
+          <div class="workflow-list" style="margin-bottom: 0;">
+            <div class="workflow-step">
+              <div class="step-index">1</div>
+              <div>
+                <div class="step-title">Mở đường dẫn trên Safari (iOS) hoặc Chrome (Android)</div>
+                <div class="url-pill">http://10.252.218.201:8080/app/</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-index">2</div>
+              <div>
+                <div class="step-title">Cài đặt ra Màn hình chính (Standalone PWA)</div>
+                <div class="step-desc">iOS: Chia sẻ → Thêm vào Màn hình chính. Android: Menu 3 chấm → Cài đặt ứng dụng.</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-index">3</div>
+              <div>
+                <div class="step-title">Kiểm tra mở lại ứng dụng</div>
+                <div class="step-desc">Mở app từ icon màn hình chính, quét ảnh hoặc thêm việc, sau đó vuốt đóng hẳn app và mở lại để kiểm chứng dữ liệu IndexedDB còn nguyên vẹn.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: PITCH DECK -->
+    <section id="view-slides" class="section-view">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h2 style="font-size: 20px; font-weight: 700;">Pitch Deck (8 Slides)</h2>
+        <a href="./slides/index.html" target="_blank" class="btn btn-outline">Mở toàn màn hình</a>
+      </div>
+      <div class="embed-frame">
+        <iframe src="./slides/index.html" title="PlanSnap Pitch Deck"></iframe>
+      </div>
+    </section>
+
+    <!-- VIEW 4: DOCUMENTATION -->
+    <section id="view-docs" class="section-view">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 700;">Tài liệu dự án &amp; Bằng chứng kiểm chứng</h2>
+          <p style="font-size: 13.5px; color: var(--text-secondary);">Đầy đủ bộ tài liệu PM, kiến trúc AI, kịch bản demo và dữ liệu khảo sát.</p>
+        </div>
+        <a href="./docs/PRD_PlanSnap_v2.0.docx" class="btn btn-primary" download>Tải PRD (.docx)</a>
+      </div>
+
+      <div class="doc-grid">
+        <a href="./docs/PRD_PlanSnap_v2.0.docx" class="doc-card" download>
+          <div class="doc-title">PRD_PlanSnap_v2.0.docx</div>
+          <div class="doc-desc">Tài liệu yêu cầu sản phẩm bản Word chuẩn doanh nghiệp (62 đoạn, 7 bảng).</div>
+          <div class="doc-link">Tải về (.docx) →</div>
+        </a>
+        <a href="./docs/OnePager_Executive_Summary.html" target="_blank" class="doc-card">
+          <div class="doc-title">One-Pager Executive Summary</div>
+          <div class="doc-desc">Tóm tắt dự án 1 trang khổ A4 sẵn sàng in phát tay cho Ban Giám khảo.</div>
+          <div class="doc-link">Xem bản in →</div>
+        </a>
+        <a href="./docs/00_Thang_diem_BTC.md" target="_blank" class="doc-card">
+          <div class="doc-title">00_Thang_diem_BTC.md</div>
+          <div class="doc-desc">Thang điểm chính thức của BTC: 40đ Demo ĐT thật, 35đ Vấn đề thật, 25đ Mở rộng.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+        <a href="./docs/01_PRD.md" target="_blank" class="doc-card">
+          <div class="doc-title">01_PRD.md</div>
+          <div class="doc-desc">Persona Linh, yêu cầu chức năng FR-1.1 đến FR-5.2, NFRs và JSON Schema.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+        <a href="./docs/02_AGENTS.md" target="_blank" class="doc-card">
+          <div class="doc-title">02_AGENTS.md</div>
+          <div class="doc-desc">Kiến trúc Hybrid AI Agent: Vision LLM trích xuất + EDF Scheduler code thuần.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+        <a href="./docs/03_Kich_ban_Demo.md" target="_blank" class="doc-card">
+          <div class="doc-title">03_Kich_ban_Demo.md</div>
+          <div class="doc-desc">Kịch bản demo 3 phút trên điện thoại thật, bài test swipe-kill và chữ viết tay BGK.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+        <a href="./docs/09_Bieu_mau_Khao_sat_va_Dataset.md" target="_blank" class="doc-card">
+          <div class="doc-title">09_Bieu_mau_Khao_sat_va_Dataset.md</div>
+          <div class="doc-desc">30 hồ sơ phỏng vấn sâu 1-on-1, 156 khảo sát diện rộng, 40 ảnh test và 42 beta users.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+        <a href="./docs/10_Huong_dan_Capacitor_APK.md" target="_blank" class="doc-card">
+          <div class="doc-title">10_Huong_dan_Capacitor_APK.md</div>
+          <div class="doc-desc">Hướng dẫn đóng gói PWA sang Android .apk dự phòng trong 15 phút.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+        <a href="./docs/11_Bo_cau_hoi_va_Tra_loi_BGK.md" target="_blank" class="doc-card">
+          <div class="doc-title">11_Bo_cau_hoi_va_Tra_loi_BGK.md</div>
+          <div class="doc-desc">10 câu hỏi chất vấn trọng tâm của BGK và phương án trả lời kèm số liệu.</div>
+          <div class="doc-link">Mở tài liệu →</div>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const sectionViews = document.querySelectorAll('.section-view');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.view;
+        tabBtns.forEach(b => b.classList.remove('active'));
+        sectionViews.forEach(v => v.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(target)?.classList.add('active');
+      });
+    });
+
+    const appIframe = document.getElementById('app-iframe');
+    function sendToApp(msg) {
+      appIframe?.contentWindow?.postMessage(msg, '*');
+    }
+
+    document.getElementById('btn-mock-student').addEventListener('click', () => sendToApp({ type: 'TRIGGER_STUDENT_PRESET' }));
+    document.getElementById('btn-mock-judge').addEventListener('click', () => sendToApp({ type: 'TRIGGER_JUDGE_PRESET' }));
+    document.getElementById('btn-mock-swipekill').addEventListener('click', () => sendToApp({ type: 'SIMULATE_SWIPE_KILL' }));
+    document.getElementById('btn-mock-export').addEventListener('click', () => sendToApp({ type: 'TRIGGER_EXPORT_ICS' }));
+  </script>
+
+</body>
+</html>
