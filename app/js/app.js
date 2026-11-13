@@ -719,8 +719,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // 13. Service Worker
+  // 13. Service Worker (tự động kiểm tra bản mới)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => reg.update()).catch(() => {});
   }
 });
