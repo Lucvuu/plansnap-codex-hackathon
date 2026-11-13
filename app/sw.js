@@ -1,5 +1,5 @@
 // PlanSnap Service Worker - Network-First App Shell with Offline Fallback
-const CACHE_NAME = 'plansnap-v2.0.0';
+const CACHE_NAME = 'plansnap-v2.1.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

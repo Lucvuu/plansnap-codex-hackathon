@@ -141,12 +141,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.storage.getTasks(),
         window.storage.getSchedule(),
         window.storage.getSetting('gemini_api_key', ''),
-        window.storage.getSetting('gemini_model', 'gemini-2.5-flash'),
+        window.storage.getSetting('gemini_model', 'gemini-3.8-flash'),
         window.storage.getSetting('available_slots', null)
       ]);
 
       if (savedApiKey) apiKeyInput.value = savedApiKey;
-      if (savedModel) modelSelect.value = savedModel;
+      const migratedModel = (!savedModel || savedModel === 'gemini-2.5-flash' || savedModel === 'gemini-2.0-flash')
+        ? 'gemini-3.8-flash'
+        : savedModel;
+      modelSelect.value = migratedModel;
       if (Array.isArray(savedSlots)) enabledSlotKeys = savedSlots;
 
       availToggles.forEach(toggle => {
@@ -272,7 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (compressedImages.length === 0) return;
 
     const apiKey = apiKeyInput.value.trim();
-    const model = modelSelect.value || 'gemini-2.5-flash';
+    const model = modelSelect.value || 'gemini-3.8-flash';
 
     btnScan.disabled = true;
     apiMissingAlert.hidden = true;
@@ -635,11 +638,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnTestKey.disabled = true;
     btnTestKey.innerText = 'Đang kiểm tra...';
     try {
-      await window.VisionAgent.testApiKey(key, modelSelect.value);
+      const workingModel = await window.VisionAgent.testApiKey(key, modelSelect.value);
+      if (workingModel) modelSelect.value = workingModel;
       await window.storage.saveSetting('gemini_api_key', key);
       await window.storage.saveSetting('gemini_model', modelSelect.value);
       updateConnectionStatus();
-      showToast('Kết nối Gemini API thành công');
+      showToast(`Kết nối thành công (${modelSelect.value})`);
     } catch (err) {
       showToast('Kết nối thất bại: ' + err.message);
     } finally {

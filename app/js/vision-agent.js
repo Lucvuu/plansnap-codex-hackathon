@@ -81,7 +81,7 @@ class VisionAgent {
   }
 
   // Trích xuất task từ danh sách ảnh
-  static async extractTasks(compressedImages, apiKey = null, model = 'gemini-2.5-flash') {
+  static async extractTasks(compressedImages, apiKey = null, model = 'gemini-3.8-flash') {
     const hasKey = apiKey && apiKey.trim().length > 10;
     const isPresetPack = compressedImages.every(img => img.isPreset);
 
@@ -105,27 +105,36 @@ class VisionAgent {
     return await VisionAgent.simulateExtraction(compressedImages);
   }
 
-  // Kiểm tra nhanh API Key có hoạt động không
-  static async testApiKey(apiKey, model = 'gemini-2.5-flash') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Trả lời đúng 1 từ: OK' }] }]
-      })
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errText.slice(0, 120)}`);
-    }
-    return true;
+  static getCandidateModels(preferredModel) {
+    const clean = (preferredModel === 'gemini-2.5-flash' || preferredModel === 'gemini-2.0-flash' || !preferredModel)
+      ? 'gemini-3.8-flash'
+      : preferredModel;
+    return [...new Set([clean, 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'])];
   }
 
-  // Gọi trực tiếp Google Gemini API
-  static async callGeminiApi(compressedImages, apiKey, model = 'gemini-2.5-flash') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // Kiểm tra nhanh API Key có hoạt động không
+  static async testApiKey(apiKey, model = 'gemini-3.8-flash') {
+    const candidates = VisionAgent.getCandidateModels(model);
+    let lastErr = null;
+    for (const m of candidates) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey.trim()}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Trả lời đúng 1 từ: OK' }] }]
+        })
+      });
+      if (response.ok) return m;
+      const errText = await response.text();
+      lastErr = new Error(`HTTP ${response.status}: ${errText.slice(0, 120)}`);
+      if (response.status !== 404 && response.status !== 503) throw lastErr;
+    }
+    throw lastErr;
+  }
 
+  // Gọi trực tiếp Google Gemini API (tự chuyển model dự phòng nếu 404/503)
+  static async callGeminiApi(compressedImages, apiKey, model = 'gemini-3.8-flash') {
     const parts = [
       { text: `${SYSTEM_PROMPT}\n\nThời gian hiện tại (múi giờ +07:00): ${new Date().toISOString()}` }
     ];
@@ -142,24 +151,37 @@ class VisionAgent {
       }
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          temperature: 0.0,
-          response_mime_type: 'application/json'
-        }
-      })
-    });
+    const candidates = VisionAgent.getCandidateModels(model);
+    let data = null;
+    let lastErr = null;
 
-    if (!response.ok) {
+    for (const m of candidates) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            temperature: 0.0,
+            response_mime_type: 'application/json'
+          }
+        })
+      });
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+
       const errText = await response.text();
-      throw new Error(`Gemini API HTTP ${response.status}: ${errText.slice(0, 180)}`);
+      lastErr = new Error(`Gemini API HTTP ${response.status}: ${errText.slice(0, 180)}`);
+      if (response.status !== 404 && response.status !== 503) {
+        throw lastErr;
+      }
     }
 
-    const data = await response.json();
+    if (!data) throw lastErr || new Error('Không thể kết nối Gemini API.');
     const rawJsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawJsonText) {
       throw new Error('Gemini API không trả về dữ liệu hợp lệ.');
