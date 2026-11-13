@@ -13,14 +13,42 @@
         'gemini-1.5-pro'
     ]);
 
+    const scheduler = new window.PlanSnapScheduler();
+
     const DEFAULT_SLOTS = {
-        mon_fri_eve: true,
-        sat_morn: true,
-        sat_aft: true,
-        sun_morn: true,
-        sun_aft: true,
-        sun_eve: true
+        'weekday-eve': true,
+        'sat-morn': true,
+        'sat-aft': true,
+        'sun-morn': true,
+        'sun-aft': true
     };
+
+    function getEnabledSlotDefs() {
+        const defs = [];
+        if (state.slots['weekday-eve']) {
+            for (let d = 1; d <= 5; d++) {
+                defs.push({ day: d, start: '19:30', end: '22:30' });
+            }
+        }
+        if (state.slots['sat-morn']) defs.push({ day: 6, start: '08:30', end: '11:30' });
+        if (state.slots['sat-aft']) defs.push({ day: 6, start: '14:00', end: '17:00' });
+        if (state.slots['sun-morn']) defs.push({ day: 0, start: '08:30', end: '11:30' });
+        if (state.slots['sun-aft']) defs.push({ day: 0, start: '14:00', end: '17:00' });
+        return defs;
+    }
+
+    function formatClarifyOptionLabel(opt) {
+        if (opt && typeof opt === 'object' && opt.label) return opt.label;
+        const iso = typeof opt === 'string' ? opt : opt?.deadline_iso;
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return String(opt || '');
+        const dayNames = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${dayNames[d.getDay()]}, ${dd}/${mm} · ${hh}:${mi}`;
+    }
 
     const state = {
         images: [],
@@ -156,14 +184,15 @@
     }
 
     function switchTab(tabName) {
-        state.activeTab = tabName;
+        const targetId = tabName.startsWith('tab-') ? tabName : `tab-${tabName}`;
+        state.activeTab = targetId;
         el.navItems.forEach((btn) => {
-            const active = btn.dataset.tab === tabName;
+            const active = btn.dataset.tab === targetId;
             btn.classList.toggle('active', active);
             btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
         el.tabPanes.forEach((pane) => {
-            pane.classList.toggle('active', pane.id === `tab-${tabName}`);
+            pane.classList.toggle('active', pane.id === targetId);
         });
     }
 
@@ -195,7 +224,7 @@
                 : 'Mẫu';
 
             item.innerHTML = `
-                <img src="${img.dataUrl}" alt="${escapeHtml(img.fileName || 'Ảnh ' + (idx + 1))}">
+                <img src="${img.dataUrl}" alt="${escapeHtml(img.fileName || img.name || 'Ảnh ' + (idx + 1))}">
                 <span class="preview-size">${escapeHtml(sizeLabel)}</span>
                 <button type="button" class="preview-remove" data-idx="${idx}" aria-label="Xóa ảnh">×</button>
             `;
@@ -237,7 +266,9 @@
 
     async function loadPreset(presetType) {
         const samples = window.VisionAgent.getSampleImages();
-        const chosen = presetType === 'judge' ? samples.judge : samples.student;
+        const chosen = presetType === 'judge'
+            ? (samples.judgeHandwritten ? [samples.judgeHandwritten] : [])
+            : (samples.studentPack || []);
         state.images = chosen.map((s) => ({ ...s, isPreset: true, presetType }));
         renderImagePreviews();
         switchTab('capture');
@@ -331,7 +362,7 @@
 
     async function recomputeAndPersist() {
         const activeTasks = state.tasks.filter((t) => !t.completed);
-        state.schedule = window.PlanSnapScheduler.schedule(activeTasks, state.slots, new Date());
+        state.schedule = scheduler.schedule(activeTasks, getEnabledSlotDefs(), new Date());
         await window.storage.saveTasks(state.tasks);
         await window.storage.saveSchedule(state.schedule);
         renderTasks();
@@ -363,19 +394,20 @@
 
         // Clarification cards for ambiguous deadlines
         if (el.clarificationArea) {
-            const ambiguous = state.tasks.filter((t) => !t.completed && t.needs_clarification);
+            const ambiguous = state.tasks.filter((t) => !t.completed && t.needs_confirmation);
             el.clarificationArea.innerHTML = '';
             ambiguous.forEach((task) => {
+                const opts = task.options || task.clarification_options || [];
                 const card = document.createElement('div');
                 card.className = 'clarify-card';
-                const chipsHtml = (task.clarification_options || []).map((opt, i) => `
+                const chipsHtml = opts.map((opt, i) => `
                     <button type="button" class="clarify-chip" data-task-id="${escapeHtml(task.id)}" data-opt-idx="${i}">
-                        ${escapeHtml(opt.label)}
+                        ${escapeHtml(formatClarifyOptionLabel(opt))}
                     </button>
                 `).join('');
 
                 card.innerHTML = `
-                    <div class="clarify-title">Cần xác nhận hạn: ${escapeHtml(task.title)}</div>
+                    <div class="clarify-title">${escapeHtml(task.question || ('Cần xác nhận hạn: ' + task.title))}</div>
                     <div class="clarify-quote">“${escapeHtml(task.source_quote || '')}”</div>
                     <div class="clarify-chips">${chipsHtml}</div>
                 `;
@@ -596,10 +628,10 @@
     function renderSettings() {
         if (el.apiKeyInput) el.apiKeyInput.value = state.apiKey || '';
         if (el.modelSelect) el.modelSelect.value = state.model || DEFAULT_MODEL;
-        el.slotToggles.forEach((input) => {
-            const key = input.dataset.slot;
+        el.slotToggles.forEach((btn) => {
+            const key = btn.dataset.slot;
             if (key in state.slots) {
-                input.checked = Boolean(state.slots[key]);
+                btn.classList.toggle('active', Boolean(state.slots[key]));
             }
         });
     }
@@ -624,9 +656,9 @@
             state.model = savedModel;
         }
 
-        state.schedule = window.PlanSnapScheduler.schedule(
+        state.schedule = scheduler.schedule(
             state.tasks.filter((t) => !t.completed),
-            state.slots,
+            getEnabledSlotDefs(),
             new Date()
         );
 
@@ -697,13 +729,15 @@
             const taskId = chip.dataset.taskId;
             const optIdx = Number(chip.dataset.optIdx);
             const task = state.tasks.find((t) => t.id === taskId);
-            if (!task || !task.clarification_options?.[optIdx]) return;
+            const opts = task?.options || task?.clarification_options || [];
+            const chosen = opts[optIdx];
+            if (!task || !chosen) return;
 
-            const chosen = task.clarification_options[optIdx];
-            task.deadline_iso = chosen.deadline_iso;
-            task.needs_clarification = false;
+            const chosenIso = typeof chosen === 'string' ? chosen : chosen.deadline_iso;
+            task.deadline_iso = chosenIso;
+            task.needs_confirmation = false;
             await recomputeAndPersist();
-            showToast(`Đã chốt hạn: ${chosen.label}`, 'success');
+            showToast(`Đã chốt hạn: ${formatClarifyOptionLabel(chosen)}`, 'success');
         });
 
         el.tasksContainer?.addEventListener('click', async (e) => {
@@ -753,7 +787,7 @@
                     existing.title = title;
                     existing.deadline_iso = deadlineIso;
                     existing.estimated_minutes = duration;
-                    existing.needs_clarification = false;
+                    existing.needs_confirmation = false;
                 }
                 showToast('Đã cập nhật đầu việc.', 'success');
             } else {
@@ -763,7 +797,7 @@
                     deadline_iso: deadlineIso,
                     estimated_minutes: duration,
                     source_quote: 'Thêm thủ công',
-                    needs_clarification: false,
+                    needs_confirmation: false,
                     completed: false
                 });
                 showToast('Đã thêm đầu việc mới.', 'success');
@@ -833,9 +867,10 @@
         });
 
         el.slotToggles.forEach((toggle) => {
-            toggle.addEventListener('change', async () => {
+            toggle.addEventListener('click', async () => {
                 const slot = toggle.dataset.slot;
-                state.slots[slot] = toggle.checked;
+                state.slots[slot] = !state.slots[slot];
+                toggle.classList.toggle('active', Boolean(state.slots[slot]));
                 await window.storage.saveSetting('available_slots', state.slots);
                 await recomputeAndPersist();
                 showToast('Đã cập nhật lịch theo khung giờ mới.', 'info');
