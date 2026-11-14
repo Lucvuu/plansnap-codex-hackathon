@@ -4,8 +4,8 @@
   "description": "Biến ảnh chụp và tin nhắn rải rác thành kế hoạch cá nhân chỉ dưới 1 phút",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#ffffff",
+  "background_color": "#0a0f1d",
+  "theme_color": "#0a0f1d",
   "orientation": "portrait",
   "icons": [
     {

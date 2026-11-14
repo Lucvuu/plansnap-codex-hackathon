@@ -6,10 +6,10 @@
   <title>PlanSnap</title>
 
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#0a0f1d">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PlanSnap">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%232563eb'/><path d='M156 172h200v36H156zm0 76h200v36H156zm0 76h128v36H156z' fill='white'/></svg>">
 
@@ -116,6 +116,7 @@
         <button id="btn-load-preset-student" class="pill-btn" type="button">3 ảnh Zalo / LMS</button>
         <button id="btn-load-preset-judge" class="pill-btn" type="button">Ghi chú viết tay</button>
       </div>
+      <button id="btn-camera-judge" class="btn btn-outline" type="button">✍️ Chụp thử thách chữ viết tay của BGK</button>
     </section>
 
     <!-- TAB 2: Đầu việc -->
@@ -143,14 +144,17 @@
           <h1>Lịch làm việc</h1>
           <p id="schedule-summary-text" class="sub-meta">Chưa có phiên nào</p>
         </div>
-        <button id="btn-export-ics" class="pill-btn primary-soft" type="button">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Tải .ics</span>
-        </button>
+        <div class="header-actions">
+          <button id="btn-add-schedule" class="pill-btn primary-soft" type="button">+ Thêm lịch</button>
+          <button id="btn-export-ics" class="pill-btn neutral-soft" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>.ics</span>
+          </button>
+        </div>
       </div>
 
       <!-- Horizontal 7-Day Week Strip -->
@@ -250,7 +254,43 @@
 
   </main>
 
-  <!-- Bottom Sheet Modal: Thêm / Sửa đầu việc -->
+  <!-- Action Sheet: Thêm lịch mới -->
+  <div id="add-schedule-sheet" class="modal-backdrop" hidden>
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="add-sheet-title">
+      <div class="modal-header">
+        <h3 id="add-sheet-title" class="modal-title">Thêm lịch mới</h3>
+        <button id="btn-sheet-close" class="icon-btn" type="button" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="sheet-options">
+        <button id="btn-sched-from-photo" class="sheet-option-btn" type="button">
+          <span class="sheet-opt-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </span>
+          <span class="sheet-opt-text">
+            <strong>Từ ảnh chụp / Camera</strong>
+            <span>Chụp hoặc chọn ảnh Zalo, LMS, ghi chú viết tay để AI bóc tách &amp; nối vào lịch</span>
+          </span>
+        </button>
+        <button id="btn-sched-manual" class="sheet-option-btn" type="button">
+          <span class="sheet-opt-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </span>
+          <span class="sheet-opt-text">
+            <strong>Thêm lịch thủ công</strong>
+            <span>Tự đặt khung giờ cố định hoặc nhập hạn chót để máy tự xếp vào giờ rảnh</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Sheet Modal: Thêm / Sửa đầu việc & lịch -->
   <div id="task-modal-backdrop" class="modal-backdrop" hidden>
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
@@ -259,13 +299,21 @@
       </div>
       <form id="task-modal-form" class="modal-body">
         <input type="hidden" id="modal-task-id">
-        <div class="form-group">
-          <label class="form-label" for="modal-task-title">Tên đầu việc</label>
-          <input type="text" id="modal-task-title" class="input-field" required placeholder="Ví dụ: Nộp báo cáo Kinh tế">
+        <div id="modal-mode-switch" class="segmented-control" role="tablist">
+          <button type="button" class="seg-btn active" data-mode="edf">Tự xếp giờ rảnh</button>
+          <button type="button" class="seg-btn" data-mode="fixed">Giờ cố định</button>
         </div>
         <div class="form-group">
+          <label class="form-label" for="modal-task-title">Tên đầu việc / Lịch hẹn</label>
+          <input type="text" id="modal-task-title" class="input-field" required placeholder="Ví dụ: Họp nhóm đồ án hoặc Nộp báo cáo">
+        </div>
+        <div id="modal-deadline-group" class="form-group">
           <label class="form-label" for="modal-task-deadline">Hạn chót</label>
           <input type="datetime-local" id="modal-task-deadline" class="input-field" required>
+        </div>
+        <div id="modal-fixed-group" class="form-group" hidden>
+          <label class="form-label" for="modal-task-start">Thời gian bắt đầu</label>
+          <input type="datetime-local" id="modal-task-start" class="input-field">
         </div>
         <div class="form-group">
           <label class="form-label" for="modal-task-duration">Thời lượng dự kiến</label>

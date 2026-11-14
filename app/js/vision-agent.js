@@ -1,5 +1,5 @@
 // PlanSnap Multi-modal Vision Agent Connector
-// Tối ưu tốc độ (< 2s) với gemini-3-flash-preview + Auto-Fallback
+// Gemini 2.5 Flash structured extraction with timeout, schema validation and one retry.
 
 function buildSystemPrompt(clientCurrentTime, timezone = 'Asia/Ho_Chi_Minh') {
   return `VAI TRÒ:
@@ -52,6 +52,41 @@ Chỉ trả về duy nhất một đối tượng JSON hợp lệ tuân thủ ng
 {"tasks":[{"id":"t1","title":"Tên ngắn gọn","source_quote":"Trích nguyên văn","source_image_index":1,"deadline_raw":"Hạn gốc","deadline_iso":"2026-11-20T17:00:00+07:00","needs_confirmation":false,"question":null,"options":[],"estimated_minutes":60,"confidence":0.95}]}`;
 }
 
+const EXTRACTION_SCHEMA = {
+  type: 'OBJECT',
+  required: ['tasks'],
+  properties: {
+    tasks: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        required: [
+          'id', 'title', 'source_quote', 'source_image_index', 'deadline_raw',
+          'deadline_iso', 'needs_confirmation', 'question', 'options',
+          'estimated_minutes', 'confidence'
+        ],
+        properties: {
+          id: { type: 'STRING' },
+          title: { type: 'STRING' },
+          source_quote: { type: 'STRING' },
+          source_image_index: { type: 'INTEGER' },
+          deadline_raw: { type: 'STRING' },
+          deadline_iso: { type: 'STRING', nullable: true },
+          needs_confirmation: { type: 'BOOLEAN' },
+          question: { type: 'STRING', nullable: true },
+          options: { type: 'ARRAY', items: { type: 'STRING' } },
+          estimated_minutes: { type: 'INTEGER' },
+          confidence: { type: 'NUMBER' }
+        }
+      }
+    }
+  }
+};
+
+const RETRY_PROMPT = `Chỉ đọc ảnh và trả về JSON đúng schema ExtractionResult đã cung cấp.
+Mỗi task phải đủ 11 trường bắt buộc, source_quote phải là trích dẫn nguyên văn.
+Không giải thích, không markdown, không tự xếp lịch.`;
+
 class VisionAgent {
   static async ensureRasterImage(img) {
     if (img.mimeType !== 'image/svg+xml' && !img.dataUrl?.startsWith('data:image/svg+xml')) {
@@ -76,14 +111,10 @@ class VisionAgent {
   }
 
   static getCandidateModels(preferredModel) {
-    const deprecated = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-    const clean = (!preferredModel || deprecated.includes(preferredModel))
-      ? 'gemini-3-flash-preview'
-      : preferredModel;
-    return [...new Set([clean, 'gemini-3-flash-preview', 'gemini-3.5-flash', 'gemini-3.8-flash'])];
+    return [...new Set([preferredModel || 'gemini-2.5-flash', 'gemini-2.5-flash'])];
   }
 
-  static async extractTasks(compressedImages, apiKey = null, model = 'gemini-3-flash-preview') {
+  static async extractTasks(compressedImages, apiKey = null, model = 'gemini-2.5-flash') {
     const hasKey = apiKey && apiKey.trim().length > 10;
     const isPresetPack = compressedImages.every(img => img.isPreset);
 
@@ -106,13 +137,30 @@ class VisionAgent {
     return { tasks, modelUsed: 'preset', elapsedMs: 400 };
   }
 
-  static async testApiKey(apiKey, model = 'gemini-3-flash-preview') {
+  static async fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        const timeoutError = new Error('Mạng đang chậm, chạm để thử lại');
+        timeoutError.code = 'TIMEOUT';
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  static async testApiKey(apiKey, model = 'gemini-2.5-flash') {
     const candidates = VisionAgent.getCandidateModels(model);
     let lastErr = null;
     for (const m of candidates) {
       const t0 = performance.now();
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey.trim()}`;
-      const response = await fetch(url, {
+      const response = await VisionAgent.fetchWithTimeout(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: 'OK' }] }] })
@@ -122,12 +170,54 @@ class VisionAgent {
       }
       const errText = await response.text();
       lastErr = new Error(`HTTP ${response.status}: ${errText.slice(0, 100)}`);
-      if (response.status !== 404 && response.status !== 503) throw lastErr;
+      if (![404, 429, 500, 503].includes(response.status)) throw lastErr;
     }
     throw lastErr;
   }
 
-  static async callGeminiApi(compressedImages, apiKey, model = 'gemini-3-flash-preview') {
+  static parseExtraction(rawJsonText) {
+    const stripped = String(rawJsonText || '')
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    try {
+      return JSON.parse(stripped);
+    } catch (_) {
+      const match = stripped.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('Không tìm thấy JSON trong phản hồi AI.');
+      return JSON.parse(match[0]);
+    }
+  }
+
+  static validateExtraction(parsed, imageCount) {
+    const required = [
+      'id', 'title', 'source_quote', 'source_image_index', 'deadline_raw',
+      'deadline_iso', 'needs_confirmation', 'question', 'options',
+      'estimated_minutes', 'confidence'
+    ];
+    if (!parsed || !Array.isArray(parsed.tasks)) throw new Error('ExtractionResult thiếu mảng tasks.');
+    parsed.tasks.forEach((task, index) => {
+      const missing = required.filter((key) => !Object.prototype.hasOwnProperty.call(task, key));
+      if (missing.length) throw new Error(`Task ${index + 1} thiếu: ${missing.join(', ')}.`);
+      if (!String(task.title).trim() || !String(task.source_quote).trim()) throw new Error(`Task ${index + 1} thiếu bằng chứng nguồn.`);
+      if (!Number.isInteger(task.source_image_index) || task.source_image_index < 1 || task.source_image_index > imageCount) {
+        throw new Error(`Task ${index + 1} có source_image_index không hợp lệ.`);
+      }
+      if (!Array.isArray(task.options) || !Number.isFinite(Number(task.estimated_minutes)) || !Number.isFinite(Number(task.confidence))) {
+        throw new Error(`Task ${index + 1} sai kiểu dữ liệu.`);
+      }
+      if (task.deadline_iso && Number.isNaN(new Date(task.deadline_iso).getTime())) throw new Error(`Task ${index + 1} có deadline_iso sai.`);
+    });
+    return parsed.tasks.map((task, index) => ({
+      ...task,
+      id: String(task.id || `task_live_${Date.now()}_${index}`),
+      estimated_minutes: Math.max(15, Math.round(Number(task.estimated_minutes))),
+      confidence: Math.max(0, Math.min(1, Number(task.confidence))),
+      needs_confirmation: Boolean(task.needs_confirmation) || Number(task.confidence) < 0.75
+    }));
+  }
+
+  static async callGeminiApi(compressedImages, apiKey, model = 'gemini-2.5-flash') {
     const t0 = performance.now();
     const now = new Date();
     const tzOffsetMin = -now.getTimezoneOffset();
@@ -135,7 +225,7 @@ class VisionAgent {
     const absMin = Math.abs(tzOffsetMin);
     const pad = (n) => String(n).padStart(2, '0');
     const clientCurrentTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}${sign}${pad(Math.floor(absMin / 60))}:${pad(absMin % 60)}`;
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Ho_Chi_Minh';
+    const timezone = 'Asia/Ho_Chi_Minh';
 
     const parts = [
       { text: buildSystemPrompt(clientCurrentTime, timezone) }
@@ -149,56 +239,42 @@ class VisionAgent {
     }
 
     const candidates = VisionAgent.getCandidateModels(model);
-    let data = null;
-    let modelUsed = candidates[0];
-    let lastErr = null;
-
-    for (const m of candidates) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: {
-            temperature: 0.0,
-            response_mime_type: 'application/json'
-          }
-        })
-      });
-
-      if (response.ok) {
-        data = await response.json();
-        modelUsed = m;
-        break;
+    let lastError = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const modelUsed = candidates[Math.min(attempt, candidates.length - 1)];
+      const attemptParts = attempt === 0 ? parts : [{ text: RETRY_PROMPT }, ...parts.slice(1)];
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelUsed}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      try {
+        const response = await VisionAgent.fetchWithTimeout(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: attemptParts }],
+            generationConfig: {
+              temperature: 0.0,
+              maxOutputTokens: 1500,
+              responseMimeType: 'application/json',
+              responseSchema: EXTRACTION_SCHEMA
+            }
+          })
+        }, 15000);
+        if (!response.ok) {
+          const errText = await response.text();
+          const error = new Error(`Gemini HTTP ${response.status}: ${errText.slice(0, 160)}`);
+          error.retryable = [408, 429, 500, 502, 503, 504].includes(response.status);
+          throw error;
+        }
+        const data = await response.json();
+        const rawJsonText = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('');
+        if (!rawJsonText) throw new Error('Gemini API không trả về dữ liệu hợp lệ.');
+        const tasks = VisionAgent.validateExtraction(VisionAgent.parseExtraction(rawJsonText), compressedImages.length);
+        return { tasks, modelUsed, elapsedMs: Math.round(performance.now() - t0), retried: attempt > 0 };
+      } catch (error) {
+        lastError = error;
+        if (error.code === 'TIMEOUT' || (attempt === 0 && error.retryable === false)) break;
       }
-
-      const errText = await response.text();
-      lastErr = new Error(`HTTP ${response.status}: ${errText.slice(0, 140)}`);
-      if (response.status !== 404 && response.status !== 503) throw lastErr;
     }
-
-    if (!data) throw lastErr || new Error('Không thể kết nối Gemini API.');
-
-    const rawJsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawJsonText) throw new Error('Gemini API không trả về dữ liệu hợp lệ.');
-
-    const cleanJsonText = rawJsonText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-
-    const parsed = JSON.parse(cleanJsonText);
-    const tasks = (parsed.tasks || []).map((t, i) => ({
-      ...t,
-      id: t.id || `task_live_${Date.now()}_${i}`
-    }));
-
-    return {
-      tasks,
-      modelUsed,
-      elapsedMs: Math.round(performance.now() - t0)
-    };
+    throw lastError || new Error('Không thể kết nối Gemini API.');
   }
 
   static async simulateExtraction() {

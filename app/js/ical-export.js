@@ -1,5 +1,33 @@
 // PlanSnap iCalendar (.ics) Export Module - RFC 5545 Compliant
 class ICalExporter {
+  static escapeText(value) {
+    return String(value ?? '')
+      .replace(/\\/g, '\\\\')
+      .replace(/\r?\n/g, '\\n')
+      .replace(/,/g, '\\,')
+      .replace(/;/g, '\\;');
+  }
+
+  static foldLine(line) {
+    const chunks = [];
+    let current = '';
+    let bytes = 0;
+    for (const char of String(line)) {
+      const charBytes = new TextEncoder().encode(char).length;
+      const limit = chunks.length === 0 ? 75 : 74;
+      if (bytes + charBytes > limit && current) {
+        chunks.push(current);
+        current = char;
+        bytes = charBytes;
+      } else {
+        current += char;
+        bytes += charBytes;
+      }
+    }
+    if (current || !chunks.length) chunks.push(current);
+    return chunks.join('\r\n ');
+  }
+
   static formatIcsDate(dateString) {
     const d = new Date(dateString);
     const pad = (n) => (n < 10 ? '0' + n : n);
@@ -31,11 +59,11 @@ class ICalExporter {
     scheduledEvents.forEach((event) => {
       const startStr = ICalExporter.formatIcsDate(event.start);
       const endStr = ICalExporter.formatIcsDate(event.end);
-      const summary = event.title.replace(/[,;]/g, ' ');
-      const description = `Phiên làm việc do PlanSnap tự động xếp lịch.\\nNguồn: "${event.source_quote || 'Chụp từ ảnh'}"\\nHạn chót: ${event.deadline_iso || 'Chưa rõ'}`;
+      const summary = ICalExporter.escapeText(event.title);
+      const description = ICalExporter.escapeText(`Nguồn: "${event.source_quote || 'Chụp từ ảnh'}"\nHạn chót gốc: ${event.deadline_iso || 'Chưa rõ'}`);
 
       lines.push('BEGIN:VEVENT');
-      lines.push(`UID:${event.id}@plansnap.app`);
+      lines.push(`UID:${ICalExporter.escapeText(event.id)}@plansnap.app`);
       lines.push(`DTSTAMP:${nowStr}`);
       lines.push(`DTSTART:${startStr}`);
       lines.push(`DTEND:${endStr}`);
@@ -46,13 +74,13 @@ class ICalExporter {
       lines.push('BEGIN:VALARM');
       lines.push('TRIGGER:-PT15M');
       lines.push('ACTION:DISPLAY');
-      lines.push(`DESCRIPTION:Nhắc nhở: ${summary}`);
+      lines.push(`DESCRIPTION:${ICalExporter.escapeText(`Nhắc nhở: ${event.title}`)}`);
       lines.push('END:VALARM');
       lines.push('END:VEVENT');
     });
 
     lines.push('END:VCALENDAR');
-    return lines.join('\r\n');
+    return lines.map(ICalExporter.foldLine).join('\r\n') + '\r\n';
   }
 
   static downloadIcsFile(scheduledEvents, filename = 'plansnap_lich_lam_viec.ics') {
@@ -73,7 +101,7 @@ class ICalExporter {
     const startStr = ICalExporter.formatIcsDate(event.start);
     const endStr = ICalExporter.formatIcsDate(event.end);
     const text = encodeURIComponent(event.title);
-    const details = encodeURIComponent(`Nguồn trích dẫn: ${event.source_quote || ''}\nLên lịch tự động bởi PlanSnap`);
+    const details = encodeURIComponent(`Nguồn: "${event.source_quote || ''}"\nHạn chót gốc: ${event.deadline_iso || 'Chưa rõ'}\nLên lịch tự động bởi PlanSnap`);
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${startStr}/${endStr}&details=${details}`;
   }
 }
