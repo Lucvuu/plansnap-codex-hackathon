@@ -13,3 +13,9 @@ node_modules/
 docs/
 *.docx
 build_prd_docx.py
+
+# Local build/export artifacts (decks, thumbnails)
+.chart-data-*/
+.codex-build/
+.codex-finalizer/
+output/
