@@ -14,6 +14,7 @@ PlanSnap biến hàng chục ảnh chụp màn hình thông báo bài tập (Zal
 
 - `index.html`: Trang trình diễn web và trình giả lập tương tác.
 - `app/`: Ứng dụng di động PWA (`index.html`, `manifest.json`, `sw.js`, `css/`, `js/`).
+- `mobile/`: Bản native React Native + Expo (iOS / Android / web) — xem [`mobile/README.md`](mobile/README.md).
 - `slides/`: Bộ slide thuyết trình 8 trang (`slides/index.html`).
 - `docs/`: Toàn bộ tài liệu PM, PRD (Markdown & `.docx`), kiến trúc Agent, kịch bản demo, khảo sát 30 PV sâu + 156 khảo sát diện rộng, 42 người dùng Beta.
 - `serve.py`: Máy chủ cục bộ hỗ trợ thử nghiệm qua mạng LAN trên điện thoại thật.
@@ -25,4 +26,10 @@ python serve.py
 ```
 
 Sau đó mở `http://localhost:8080/` trên máy tính hoặc truy cập địa chỉ LAN hiển thị trên terminal bằng điện thoại.
+
+Bản native (Expo):
+
+```bash
+cd mobile && npm install && npx expo start   # quét QR bằng Expo Go
+```
 
