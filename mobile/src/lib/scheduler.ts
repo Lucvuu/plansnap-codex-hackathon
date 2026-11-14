@@ -1,5 +1,5 @@
-// PlanSnap Deterministic Scheduling Engine (exact parity with app/js/scheduler.js)
-// Earliest Deadline First (EDF) + balanced 60-90 minute chunking + 3-hour safety buffer + fixed-time events.
+// PlanSnap Deterministic Scheduling Engine (ported from app/js/scheduler.js)
+// Earliest Deadline First (EDF) + 3h safety buffer + user free-time windows.
 import type { ScheduledEvent, SlotDef, Task } from './types';
 
 export const DEFAULT_SLOT_DEFS: SlotDef[] = [
@@ -14,28 +14,15 @@ export const DEFAULT_SLOT_DEFS: SlotDef[] = [
   { day: 0, start: '14:00', end: '17:00' },
 ];
 
+const MIN_WINDOW_MINUTES = 30;
 const BUFFER_HOURS = 3;
 const HORIZON_DAYS = 14;
 
 interface AvailableWindow {
-  pointer: Date;
-  end: Date;
-}
-
-interface Allocation {
-  index: number;
   start: Date;
   end: Date;
-  duration: number;
-}
-
-export function splitIntoSessions(minutes?: number): number[] {
-  const total = Math.max(15, Math.round(Number(minutes) || 60));
-  if (total <= 120) return [total];
-  const count = Math.ceil(total / 90);
-  const base = Math.floor(total / count);
-  const extra = total % count;
-  return Array.from({ length: count }, (_, index) => base + (index < extra ? 1 : 0));
+  currentPointer: Date;
+  remainingMinutes: number;
 }
 
 export function generateAvailableWindows(
@@ -44,74 +31,46 @@ export function generateAvailableWindows(
   daysCount = HORIZON_DAYS,
 ): AvailableWindow[] {
   const windows: AvailableWindow[] = [];
-  const now = new Date(startDate);
-  now.setSeconds(0, 0);
+  const current = new Date(startDate);
+  current.setSeconds(0, 0);
 
-  for (let dayOffset = 0; dayOffset < daysCount; dayOffset++) {
-    const dayDate = new Date(now);
-    dayDate.setDate(dayDate.getDate() + dayOffset);
+  for (let i = 0; i < daysCount; i++) {
+    const dayDate = new Date(current);
+    dayDate.setDate(dayDate.getDate() + i);
+    const dayOfWeek = dayDate.getDay();
 
-    slotsDef
-      .filter((slot) => slot.day === dayDate.getDay())
-      .sort((a, b) => a.start.localeCompare(b.start))
-      .forEach((slot) => {
-        const [startHour, startMinute] = slot.start.split(':').map(Number);
-        const [endHour, endMinute] = slot.end.split(':').map(Number);
-        const slotStart = new Date(dayDate);
-        const slotEnd = new Date(dayDate);
-        slotStart.setHours(startHour, startMinute, 0, 0);
-        slotEnd.setHours(endHour, endMinute, 0, 0);
-        if (slotEnd <= now) return;
-        // Start on the next quarter hour when the current slot is already in progress.
-        const pointer =
-          slotStart > now ? slotStart : new Date(Math.ceil(now.getTime() / 900000) * 900000);
-        if (pointer < slotEnd) windows.push({ pointer, end: slotEnd });
-      });
-  }
-  return windows;
-}
+    const matchingSlots = slotsDef
+      .filter((s) => s.day === dayOfWeek)
+      .sort((a, b) => a.start.localeCompare(b.start));
 
-function tryAllocate(
-  sourceWindows: AvailableWindow[],
-  chunks: number[],
-  cutoff: Date | null = null,
-  preferLatest = false,
-): { windows: AvailableWindow[]; allocations: Allocation[] } | null {
-  const windows = sourceWindows.map((w) => ({
-    pointer: new Date(w.pointer),
-    end: new Date(w.end),
-  }));
-  const allocations: Allocation[] = [];
-  const workChunks = preferLatest ? [...chunks].reverse() : [...chunks];
-  const indexes = windows.map((_, index) => index);
-  if (preferLatest) indexes.reverse();
+    for (const slot of matchingSlots) {
+      const [startH, startM] = slot.start.split(':').map(Number);
+      const [endH, endM] = slot.end.split(':').map(Number);
 
-  for (const duration of workChunks) {
-    let placed: Allocation | null = null;
-    for (const index of indexes) {
-      const win = windows[index];
-      if (preferLatest) {
-        const effectiveEnd = cutoff && cutoff < win.end ? cutoff : win.end;
-        const start = new Date(effectiveEnd.getTime() - duration * 60000);
-        if (start >= win.pointer && (!cutoff || effectiveEnd <= cutoff)) {
-          placed = { index, start, end: new Date(effectiveEnd), duration };
-          win.end = start;
-          break;
-        }
-      } else {
-        const start = new Date(win.pointer);
-        const end = new Date(start.getTime() + duration * 60000);
-        if (end <= win.end && (!cutoff || end <= cutoff)) {
-          placed = { index, start, end, duration };
-          win.pointer = end;
-          break;
+      const slotStart = new Date(dayDate);
+      slotStart.setHours(startH, startM, 0, 0);
+
+      const slotEnd = new Date(dayDate);
+      slotEnd.setHours(endH, endM, 0, 0);
+
+      if (slotEnd > startDate) {
+        // A window already in progress starts 15 minutes from now.
+        const actualStart =
+          slotStart > startDate ? slotStart : new Date(startDate.getTime() + 15 * 60 * 1000);
+        const totalMinutes = Math.max(0, Math.round((slotEnd.getTime() - actualStart.getTime()) / 60000));
+
+        if (totalMinutes >= MIN_WINDOW_MINUTES) {
+          windows.push({
+            start: actualStart,
+            end: slotEnd,
+            currentPointer: actualStart,
+            remainingMinutes: totalMinutes,
+          });
         }
       }
     }
-    if (!placed) return null;
-    allocations.push(placed);
   }
-  return { windows, allocations };
+  return windows;
 }
 
 export function scheduleTasks(
@@ -119,106 +78,99 @@ export function scheduleTasks(
   customSlots: SlotDef[] | null = null,
   referenceDate: Date = new Date(),
 ): ScheduledEvent[] {
-  const scheduledEvents: ScheduledEvent[] = [];
-  const fixedTasks = (tasks || []).filter((task) => !task.completed && task.fixed_start_iso);
-
-  for (const task of fixedTasks) {
-    const fixedStart = new Date(task.fixed_start_iso as string);
-    if (Number.isNaN(fixedStart.getTime())) continue;
-    const dur = Math.max(15, Math.round(Number(task.estimated_minutes) || 60));
-    const fixedEnd = new Date(fixedStart.getTime() + dur * 60000);
-    scheduledEvents.push({
-      id: `${task.id}_fixed`,
-      taskId: task.id,
-      title: `[PlanSnap] ${task.title}`,
-      originalTitle: task.title,
-      source_quote: task.source_quote || 'Lịch cố định',
-      deadline_iso: task.deadline_iso || fixedEnd.toISOString(),
-      start: fixedStart.toISOString(),
-      end: fixedEnd.toISOString(),
-      durationMinutes: dur,
-      sessionIndex: 1,
-      totalSessions: 1,
-      isFixed: true,
-      isUrgent: false,
-      isPastDeadline: false,
-    });
-  }
-
   const slotsDef = Array.isArray(customSlots) ? customSlots : DEFAULT_SLOT_DEFS;
-  const validTasks = (tasks || [])
-    .filter((task) => !task.completed && !task.fixed_start_iso && task.deadline_iso && !task.needs_confirmation)
-    .map((task) => ({ ...task, deadlineDate: new Date(task.deadline_iso as string) }))
-    .filter((task) => !Number.isNaN(task.deadlineDate.getTime()))
-    .sort((a, b) => a.deadlineDate.getTime() - b.deadlineDate.getTime() || String(a.id).localeCompare(String(b.id)));
+  if (slotsDef.length === 0) return [];
 
-  if (!slotsDef.length || !validTasks.length) {
-    return scheduledEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  }
+  const validTasks = tasks
+    .filter((t) => !t.completed && t.deadline_iso && !t.needs_confirmation)
+    .map((t) => ({
+      ...t,
+      deadlineDate: new Date(t.deadline_iso as string),
+      estimated_minutes: Math.max(30, t.estimated_minutes || 60),
+    }))
+    .sort((a, b) => a.deadlineDate.getTime() - b.deadlineDate.getTime());
 
-  const furthestDeadline = Math.max(...validTasks.map((task) => task.deadlineDate.getTime()));
-  const horizonDays = Math.max(
-    HORIZON_DAYS,
-    Math.min(90, Math.ceil((furthestDeadline - referenceDate.getTime()) / 86400000) + 7),
-  );
-  let windows = generateAvailableWindows(slotsDef, referenceDate, horizonDays);
-
-  // Fixed-time events occupy their slot: carve them out so EDF sessions never overlap them.
-  for (const fixed of scheduledEvents) {
-    const busyStart = new Date(fixed.start);
-    const busyEnd = new Date(fixed.end);
-    windows = windows.flatMap((win) => {
-      if (busyEnd <= win.pointer || busyStart >= win.end) return [win];
-      const parts: AvailableWindow[] = [];
-      if (busyStart > win.pointer) parts.push({ pointer: win.pointer, end: busyStart });
-      if (busyEnd < win.end) parts.push({ pointer: busyEnd, end: win.end });
-      return parts;
-    });
-  }
+  const availableWindows = generateAvailableWindows(slotsDef, referenceDate, HORIZON_DAYS);
+  const scheduledEvents: ScheduledEvent[] = [];
+  let windowIndex = 0;
 
   for (const task of validTasks) {
-    const chunks = splitIntoSessions(task.estimated_minutes);
-    const safeCutoff = new Date(task.deadlineDate.getTime() - BUFFER_HOURS * 3600000);
-    let result = tryAllocate(windows, chunks, safeCutoff, false);
-    let forcedUrgent = false;
+    const baseSessionLen = task.estimated_minutes > 120 ? 90 : Math.min(task.estimated_minutes, 90);
+    let taskMinutesRemaining = task.estimated_minutes;
+    let sessionIndex = 1;
+    const estimatedSessions = Math.ceil(task.estimated_minutes / baseSessionLen);
+    const firstEventIndex = scheduledEvents.length;
 
-    if (!result) {
-      result = tryAllocate(windows, chunks, task.deadlineDate, true);
-      forcedUrgent = true;
-    }
-    if (!result) {
-      result = tryAllocate(windows, chunks, null, false);
-      forcedUrgent = true;
-    }
-    if (!result) continue;
+    while (taskMinutesRemaining > 0 && windowIndex < availableWindows.length) {
+      const currentWindow = availableWindows[windowIndex];
+      if (currentWindow.remainingMinutes < MIN_WINDOW_MINUTES) {
+        windowIndex++;
+        continue;
+      }
 
-    windows = result.windows;
-    result.allocations
-      .sort((a, b) => a.start.getTime() - b.start.getTime())
-      .forEach((allocation, index) => {
-        const sessionIndex = index + 1;
-        const end = allocation.end;
-        const isUrgent = forcedUrgent || end > safeCutoff;
-        const title =
-          chunks.length > 1
-            ? `[PlanSnap] ${task.title} (Phiên ${sessionIndex}/${chunks.length})`
-            : `[PlanSnap] ${task.title}`;
-        scheduledEvents.push({
-          id: `${task.id}_s${sessionIndex}`,
-          taskId: task.id,
-          title,
-          originalTitle: task.title,
-          source_quote: task.source_quote || '',
-          deadline_iso: task.deadline_iso,
-          start: allocation.start.toISOString(),
-          end: end.toISOString(),
-          durationMinutes: allocation.duration,
-          sessionIndex,
-          totalSessions: chunks.length,
-          isUrgent,
-          isPastDeadline: end > task.deadlineDate,
-        });
+      // Avoid leaving a final sliver under 20 minutes when the window can hold the rest.
+      let targetDuration = Math.min(taskMinutesRemaining, baseSessionLen);
+      const leftoverAfter = taskMinutesRemaining - targetDuration;
+      if (
+        leftoverAfter > 0 &&
+        leftoverAfter < 20 &&
+        currentWindow.remainingMinutes >= taskMinutesRemaining &&
+        taskMinutesRemaining <= 110
+      ) {
+        targetDuration = taskMinutesRemaining;
+      }
+
+      const duration = Math.min(targetDuration, currentWindow.remainingMinutes);
+      const sessionStart = new Date(currentWindow.currentPointer);
+      const sessionEnd = new Date(sessionStart.getTime() + duration * 60 * 1000);
+      const bufferThreshold = new Date(task.deadlineDate.getTime() - BUFFER_HOURS * 60 * 60 * 1000);
+
+      const isPastDeadline = sessionEnd > task.deadlineDate;
+      const isUrgent = sessionEnd > bufferThreshold;
+
+      const sessionTitle =
+        estimatedSessions > 1
+          ? `[PlanSnap] ${task.title} (Phiên ${sessionIndex}/${estimatedSessions})`
+          : `[PlanSnap] ${task.title}`;
+
+      scheduledEvents.push({
+        id: `${task.id}_s${sessionIndex}`,
+        taskId: task.id,
+        title: sessionTitle,
+        originalTitle: task.title,
+        source_quote: task.source_quote,
+        deadline_iso: task.deadline_iso,
+        start: sessionStart.toISOString(),
+        end: sessionEnd.toISOString(),
+        durationMinutes: duration,
+        sessionIndex,
+        totalSessions: estimatedSessions,
+        isUrgent,
+        isPastDeadline,
       });
+
+      currentWindow.remainingMinutes -= duration;
+      currentWindow.currentPointer = sessionEnd;
+      taskMinutesRemaining -= duration;
+      sessionIndex++;
+
+      if (currentWindow.remainingMinutes < MIN_WINDOW_MINUTES) {
+        windowIndex++;
+      }
+    }
+
+    // Fragmented windows can split a task into more sessions than estimated (the PWA then
+    // showed "Phiên 3/2"). Re-number with the real count; a partially placed task keeps the
+    // larger estimate so "Phiên 1/2" still signals that work is missing.
+    const placed = scheduledEvents.length - firstEventIndex;
+    const totalSessions = Math.max(estimatedSessions, placed);
+    if (totalSessions !== estimatedSessions) {
+      for (let i = firstEventIndex; i < scheduledEvents.length; i++) {
+        const ev = scheduledEvents[i];
+        ev.totalSessions = totalSessions;
+        ev.title = `[PlanSnap] ${task.title} (Phiên ${ev.sessionIndex}/${totalSessions})`;
+      }
+    }
   }
 
   return scheduledEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());

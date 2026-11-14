@@ -1,37 +1,48 @@
-import { router, usePathname } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { useEffect, useRef } from 'react';
+import type { ColorValue } from 'react-native';
 
-import { TabBar } from '@/components/TabBar';
-import { saveLastTab, TAB_PATHS } from '@/lib/storage';
+import { AppHeader } from '@/components/AppHeader';
+import { Icon, type IconName } from '@/components/Icon';
 import { useApp } from '@/state/AppStore';
-import { colors } from '@/theme';
+import { colors, fonts } from '@/theme';
 
-// v2 layout: no navigator header (each screen renders its own large title via <Screen>/<ScreenHeader>),
-// custom bar = Lịch · centre Snap button · Đầu việc. Declaration order = bar order.
+function TabIcon({ name, color }: { name: IconName; color: ColorValue }) {
+  return <Icon name={name} size={20} color={color} strokeWidth={1.9} />;
+}
+
 export default function TabsLayout() {
-  const { lastTab } = useApp();
-  const pathname = usePathname();
-  const restored = useRef(false);
-
-  // Swipe-kill → reopen lands on the tab the user left (NFR-02); later tab changes are remembered.
-  // Stack routes over the tabs (/settings, /review) are not tabs and are not remembered.
-  useEffect(() => {
-    if (!restored.current) {
-      restored.current = true;
-      if (lastTab !== '/') router.replace(lastTab);
-      return;
-    }
-    if ((TAB_PATHS as readonly string[]).includes(pathname)) saveLastTab(pathname).catch(() => {});
-  }, [pathname, lastTab]);
+  const { pendingCount } = useApp();
 
   return (
     <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}>
-      <Tabs.Screen name="schedule" options={{ title: 'Lịch' }} />
-      <Tabs.Screen name="index" options={{ title: 'Quét ảnh' }} />
-      <Tabs.Screen name="tasks" options={{ title: 'Đầu việc' }} />
+      screenOptions={{
+        header: () => <AppHeader />,
+        sceneStyle: { backgroundColor: colors.bg },
+        tabBarActiveTintColor: colors.blue,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: { fontSize: 10.5, fontFamily: fonts.semibold },
+        tabBarStyle: { backgroundColor: 'rgba(255,255,255,0.96)', borderTopColor: colors.border },
+        tabBarBadgeStyle: {
+          backgroundColor: colors.blue,
+          color: '#fff',
+          fontSize: 9.5,
+          fontFamily: fonts.bold,
+          minWidth: 16,
+          height: 16,
+          lineHeight: 16,
+        },
+      }}>
+      <Tabs.Screen name="index" options={{ title: 'Quét ảnh', tabBarIcon: ({ color }) => <TabIcon name="camera" color={color} /> }} />
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: 'Đầu việc',
+          tabBarIcon: ({ color }) => <TabIcon name="tasks" color={color} />,
+          tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
+        }}
+      />
+      <Tabs.Screen name="schedule" options={{ title: 'Lịch tuần', tabBarIcon: ({ color }) => <TabIcon name="calendar" color={color} /> }} />
+      <Tabs.Screen name="settings" options={{ title: 'Cài đặt', tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} /> }} />
     </Tabs>
   );
 }

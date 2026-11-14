@@ -1,6 +1,6 @@
 // Stroke icons copied from the PWA's inline SVGs (Feather icon set).
 import type { ColorValue } from 'react-native';
-import Svg, { Circle, Line, Path, Polygon, Polyline, Rect } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 
 export type IconName =
   | 'calendar'
@@ -16,17 +16,7 @@ export type IconName =
   | 'eye-off'
   | 'close'
   | 'plus'
-  | 'external'
-  | 'chevron-down'
-  | 'chevron-right'
-  | 'chevron-left'
-  | 'clock'
-  | 'alert-circle'
-  | 'arrow-up-right'
-  | 'play-circle'
-  | 'info'
-  | 'list'
-  | 'shield';
+  | 'external';
 
 interface Props {
   name: IconName;
@@ -146,62 +136,6 @@ function renderIcon(name: IconName, p: object) {
           <Line x1="5" y1="12" x2="19" y2="12" {...p} />
         </>
       );
-    case 'chevron-down':
-      return <Polyline points="6 9 12 15 18 9" {...p} />;
-    case 'chevron-right':
-      return <Polyline points="9 18 15 12 9 6" {...p} />;
-    case 'chevron-left':
-      return <Polyline points="15 18 9 12 15 6" {...p} />;
-    case 'clock':
-      return (
-        <>
-          <Circle cx="12" cy="12" r="10" {...p} />
-          <Polyline points="12 6 12 12 16 14" {...p} />
-        </>
-      );
-    case 'alert-circle':
-      return (
-        <>
-          <Circle cx="12" cy="12" r="10" {...p} />
-          <Line x1="12" y1="8" x2="12" y2="12" {...p} />
-          <Line x1="12" y1="16" x2="12.01" y2="16" {...p} />
-        </>
-      );
-    case 'arrow-up-right':
-      return (
-        <>
-          <Line x1="7" y1="17" x2="17" y2="7" {...p} />
-          <Polyline points="7 7 17 7 17 17" {...p} />
-        </>
-      );
-    case 'play-circle':
-      return (
-        <>
-          <Circle cx="12" cy="12" r="10" {...p} />
-          <Polygon points="10 8 16 12 10 16 10 8" {...p} />
-        </>
-      );
-    case 'info':
-      return (
-        <>
-          <Circle cx="12" cy="12" r="10" {...p} />
-          <Line x1="12" y1="16" x2="12" y2="12" {...p} />
-          <Line x1="12" y1="8" x2="12.01" y2="8" {...p} />
-        </>
-      );
-    case 'list':
-      return (
-        <>
-          <Line x1="8" y1="6" x2="21" y2="6" {...p} />
-          <Line x1="8" y1="12" x2="21" y2="12" {...p} />
-          <Line x1="8" y1="18" x2="21" y2="18" {...p} />
-          <Line x1="3" y1="6" x2="3.01" y2="6" {...p} />
-          <Line x1="3" y1="12" x2="3.01" y2="12" {...p} />
-          <Line x1="3" y1="18" x2="3.01" y2="18" {...p} />
-        </>
-      );
-    case 'shield':
-      return <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" {...p} />;
     case 'external':
       return (
         <>

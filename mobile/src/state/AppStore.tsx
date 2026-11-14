@@ -4,27 +4,20 @@ import { AppState } from 'react-native';
 
 import { useToast } from '@/components/Toast';
 import { clarifyOptionIso, formatClarifyOptionLabel } from '@/lib/format';
-import { GEMINI_API_KEY, GEMINI_MODEL, HAS_GEMINI_KEY } from '@/lib/config';
+import { DEFAULT_MODEL, hasUsableKey } from '@/lib/gemini';
 import { loadSampleImages } from '@/lib/samples';
 import { scheduleTasks } from '@/lib/scheduler';
-import { DEFAULT_FREE_SLOTS, getEnabledSlotDefs } from '@/lib/slots';
+import { DEFAULT_SLOTS, getEnabledSlotDefs } from '@/lib/slots';
 import * as storage from '@/lib/storage';
-import type { CapturedImage, FreeSlot, PresetType, ScheduledEvent, Task } from '@/lib/types';
+import type { CapturedImage, PresetType, ScheduledEvent, SlotKey, SlotMap, Task } from '@/lib/types';
 import * as VisionAgent from '@/lib/vision-agent';
 
 export const MAX_IMAGES = 5;
-
-/** Result of a successful scan: how many tasks were added and how many still need a deadline check. */
-export interface ExtractionOutcome {
-  added: number;
-  needsReview: number;
-}
 
 export interface TaskInput {
   id?: string;
   title: string;
   deadlineIso: string | null;
-  fixedStartIso?: string | null;
   minutes: number;
 }
 
@@ -33,39 +26,27 @@ interface AppStore {
   images: CapturedImage[];
   tasks: Task[];
   schedule: ScheduledEvent[];
-  slots: FreeSlot[];
+  apiKey: string;
+  model: string;
+  slots: SlotMap;
   hasKey: boolean;
   pendingCount: number;
-  /** Incomplete tasks whose deadline is ambiguous and must be confirmed (Smart Review). */
-  reviewCount: number;
   isScanning: boolean;
-  /** Tab that was open when the app was last closed (restored on launch). */
-  lastTab: storage.TabPath;
 
   addImages: (images: CapturedImage[]) => void;
   removeImage: (id: string) => void;
   loadPreset: (type: PresetType) => Promise<void>;
-  /**
-   * Extracts tasks from the staged images, or from `direct` (camera challenge) without staging.
-   * Resolves to null when nothing was added (error / no tasks found — a toast already explained it).
-   */
-  runExtraction: (direct?: CapturedImage[]) => Promise<ExtractionOutcome | null>;
+  runExtraction: () => Promise<boolean>;
 
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   upsertTask: (input: TaskInput) => void;
-  /** Returns false when the chosen option carries no usable date. */
-  resolveClarification: (taskId: string, optionIndex: number) => boolean;
-  /**
-   * Smart Review "1 chạm": confirm many ambiguous deadlines at once. `choices` maps task id → chosen
-   * option index; tasks whose option has no usable date are skipped. Returns how many were confirmed.
-   */
-  resolveClarifications: (choices: Record<string, number>) => number;
+  resolveClarification: (taskId: string, optionIndex: number) => void;
+  resolveAllClarifications: () => void;
 
-  toggleSlot: (id: string) => void;
-  /** Adds the window, or replaces the one with the same id. */
-  saveSlot: (slot: FreeSlot) => void;
-  deleteSlot: (id: string) => void;
+  saveApiSettings: (apiKey: string, model: string) => Promise<void>;
+  testApiKey: (apiKey: string, model: string) => Promise<string | null>;
+  toggleSlot: (key: SlotKey) => void;
   clearAll: () => Promise<void>;
 }
 
@@ -82,9 +63,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [images, setImages] = useState<CapturedImage[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [slots, setSlots] = useState<FreeSlot[]>(DEFAULT_FREE_SLOTS);
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState(DEFAULT_MODEL);
+  const [slots, setSlots] = useState<SlotMap>({ ...DEFAULT_SLOTS });
   const [isScanning, setIsScanning] = useState(false);
-  const [lastTab, setLastTab] = useState<storage.TabPath>('/');
   // Bumped when the app returns to the foreground so the schedule re-anchors to "now".
   const [clock, setClock] = useState(() => Date.now());
 
@@ -96,8 +78,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .then((saved) => {
         if (cancelled) return;
         setTasks(saved.tasks);
+        setApiKey(saved.apiKey);
+        setModel(saved.model);
         setSlots(saved.slots);
-        setLastTab(saved.lastTab);
       })
       .catch((err) => toast(`Không đọc được dữ liệu đã lưu: ${err.message}`, 'error'))
       .finally(() => !cancelled && setHydrated(true));
@@ -125,8 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [tasks, slots, clock],
   );
   const pendingCount = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks]);
-  const reviewCount = useMemo(() => tasks.filter((t) => !t.completed && t.needs_confirmation).length, [tasks]);
-  const hasKey = HAS_GEMINI_KEY;
+  const hasKey = Boolean(apiKey.trim());
 
   const touchClock = useCallback(() => setClock(Date.now()), []);
 
@@ -163,49 +145,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast],
   );
 
-  const runExtraction = useCallback(async (direct?: CapturedImage[]) => {
-    const source = direct ?? images;
-    if (!source.length || isScanning) return null;
+  const runExtraction = useCallback(async () => {
+    if (!images.length || isScanning) return false;
     setIsScanning(true);
     try {
-      const result = await VisionAgent.extractTasks(source, GEMINI_API_KEY, GEMINI_MODEL);
+      const result = await VisionAgent.extractTasks(images, apiKey, model);
       const newTasks = result.tasks.map((t) => ({ ...t, completed: Boolean(t.completed) }));
-      if (newTasks.length === 0) {
-        // FR-2.1: an image without tasks yields nothing — say so instead of "added 0".
-        toast('Không tìm thấy đầu việc hay hạn chót nào trong ảnh.', 'warning');
-        return null;
-      }
-      setTasks((prev) => {
-        const merged = [...prev];
-        for (const nt of newTasks) {
-          const ntKey = `${(nt.title || '').trim().toLowerCase()}|${nt.deadline_iso || ''}`;
-          const idx = merged.findIndex(
-            (ex) => `${(ex.title || '').trim().toLowerCase()}|${ex.deadline_iso || ''}` === ntKey,
-          );
-          if (idx >= 0) {
-            merged[idx] = { ...merged[idx], ...nt, id: merged[idx].id };
-          } else {
-            merged.push(nt);
-          }
-        }
-        return merged;
-      });
-      if (!direct) setImages([]);
+      setTasks(newTasks);
       touchClock();
-      // v2 "anti-AI-slop": no benchmark seconds or model ids in the UI.
-      const needsReview = newTasks.filter((t) => !t.completed && t.needs_confirmation).length;
+      const sec = (result.elapsedMs / 1000).toFixed(1);
       toast(
-        HAS_GEMINI_KEY ? `Đã thêm ${newTasks.length} đầu việc` : `Bản demo: đã thêm ${newTasks.length} đầu việc mẫu`,
+        hasUsableKey(apiKey)
+          ? `Đã trích xuất ${newTasks.length} đầu việc (${sec}s · ${result.modelUsed})`
+          : `Demo: ${newTasks.length} đầu việc được xếp lịch (${sec}s)`,
         'success',
       );
-      return { added: newTasks.length, needsReview };
+      return true;
     } catch (err) {
-      toast(`Không đọc được ảnh: ${(err as Error).message}`, 'error');
-      return null;
+      toast(`Lỗi AI: ${(err as Error).message}`, 'error');
+      return false;
     } finally {
       setIsScanning(false);
     }
-  }, [images, isScanning, toast, touchClock]);
+  }, [images, isScanning, apiKey, model, toast, touchClock]);
 
   // ---- Tasks ----------------------------------------------------------------
   const toggleTask = useCallback((id: string) => {
@@ -223,24 +185,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const upsertTask = useCallback(
-    ({ id, title, deadlineIso, fixedStartIso, minutes }: TaskInput) => {
+    ({ id, title, deadlineIso, minutes }: TaskInput) => {
       const duration = Math.max(15, Number(minutes) || 60);
       if (id) {
         setTasks((prev) =>
           prev.map((t) =>
             t.id === id
-              ? {
-                  ...t,
-                  title,
-                  deadline_iso: deadlineIso,
-                  fixed_start_iso: fixedStartIso ?? null,
-                  estimated_minutes: duration,
-                  needs_confirmation: false,
-                }
+              ? { ...t, title, deadline_iso: deadlineIso, estimated_minutes: duration, needs_confirmation: false }
               : t,
           ),
         );
-        toast(fixedStartIso ? 'Đã cập nhật lịch cố định.' : 'Đã cập nhật đầu việc.', 'success');
+        toast('Đã cập nhật đầu việc.', 'success');
       } else {
         setTasks((prev) => [
           ...prev,
@@ -248,14 +203,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: `manual-${Date.now()}`,
             title,
             deadline_iso: deadlineIso,
-            fixed_start_iso: fixedStartIso ?? null,
             estimated_minutes: duration,
-            source_quote: fixedStartIso ? 'Lịch cố định' : 'Thêm thủ công',
+            source_quote: 'Thêm thủ công',
             needs_confirmation: false,
             completed: false,
           },
         ]);
-        toast(fixedStartIso ? 'Đã thêm lịch cố định mới.' : 'Đã thêm đầu việc mới.', 'success');
+        toast('Đã thêm đầu việc mới.', 'success');
       }
       touchClock();
     },
@@ -268,63 +222,78 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const opts = task?.options || task?.clarification_options || [];
       const chosen = opts[optionIndex];
       const iso = clarifyOptionIso(chosen);
-      if (!task || !chosen || !iso) return false;
+      if (!task || !chosen || !iso) return;
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, deadline_iso: iso, needs_confirmation: false } : t)),
       );
       touchClock();
       toast(`Đã chốt hạn: ${formatClarifyOptionLabel(chosen)}`, 'success');
-      return true;
     },
     [tasks, toast, touchClock],
   );
 
-  const resolveClarifications = useCallback(
-    (choices: Record<string, number>) => {
-      const resolved = new Map<string, string>();
-      for (const t of tasks) {
-        if (t.completed || !t.needs_confirmation || !(t.id in choices)) continue;
-        const opts = t.options || t.clarification_options || [];
-        const iso = clarifyOptionIso(opts[choices[t.id]]);
-        if (iso) resolved.set(t.id, iso);
-      }
-      if (resolved.size === 0) return 0;
-      setTasks((prev) =>
-        prev.map((t) => (resolved.has(t.id) ? { ...t, deadline_iso: resolved.get(t.id)!, needs_confirmation: false } : t)),
-      );
-      touchClock();
-      toast(`Đã chốt ${resolved.size} hạn chót và xếp vào lịch.`, 'success');
-      return resolved.size;
-    },
-    [tasks, toast, touchClock],
-  );
+  const resolveAllClarifications = useCallback(() => {
+    let count = 0;
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (!t.completed && t.needs_confirmation) {
+          const opts = t.options || t.clarification_options || [];
+          if (opts.length > 0) {
+            const chosen = opts[opts.length - 1] || opts[0];
+            const iso = clarifyOptionIso(chosen);
+            if (iso) {
+              count++;
+              return { ...t, deadline_iso: iso, needs_confirmation: false };
+            }
+          }
+        }
+        return t;
+      }),
+    );
+    touchClock();
+    toast(`Đã tự động xác nhận ${count} hạn chót tối ưu!`, 'success');
+  }, [toast, touchClock]);
 
   // ---- Settings -------------------------------------------------------------
+  const saveApiSettings = useCallback(
+    async (key: string, nextModel: string) => {
+      const trimmed = key.trim();
+      await storage.saveApiSettings(trimmed, nextModel);
+      setApiKey(trimmed);
+      setModel(nextModel);
+      toast(trimmed ? 'Đã lưu API Key và Model.' : 'Đã chuyển về chế độ Demo.', 'success');
+    },
+    [toast],
+  );
+
+  /** Returns the model that answered, or null on failure. Saves the key on success. */
+  const testApiKey = useCallback(
+    async (key: string, preferredModel: string) => {
+      const trimmed = key.trim();
+      if (!trimmed) {
+        toast('Vui lòng nhập Gemini API Key trước.', 'warning');
+        return null;
+      }
+      try {
+        const res = await VisionAgent.testApiKey(trimmed, preferredModel);
+        await storage.saveApiSettings(trimmed, res.model);
+        setApiKey(trimmed);
+        setModel(res.model);
+        toast(`Kết nối thành công (${res.model} · ${(res.elapsedMs / 1000).toFixed(2)}s)!`, 'success');
+        return res.model;
+      } catch (err) {
+        toast(`Kết nối thất bại: ${(err as Error).message}`, 'error');
+        return null;
+      }
+    },
+    [toast],
+  );
+
   const toggleSlot = useCallback(
-    (id: string) => {
-      setSlots((prev) => prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)));
+    (key: SlotKey) => {
+      setSlots((prev) => ({ ...prev, [key]: !prev[key] }));
       touchClock();
       toast('Đã cập nhật lịch theo khung giờ mới.', 'info');
-    },
-    [toast, touchClock],
-  );
-
-  const saveSlot = useCallback(
-    (slot: FreeSlot) => {
-      setSlots((prev) =>
-        prev.some((s) => s.id === slot.id) ? prev.map((s) => (s.id === slot.id ? slot : s)) : [...prev, slot],
-      );
-      touchClock();
-      toast('Đã lưu khung giờ rảnh.', 'success');
-    },
-    [toast, touchClock],
-  );
-
-  const deleteSlot = useCallback(
-    (id: string) => {
-      setSlots((prev) => prev.filter((s) => s.id !== id));
-      touchClock();
-      toast('Đã xóa khung giờ rảnh.', 'info');
     },
     [toast, touchClock],
   );
@@ -333,7 +302,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await storage.clearAllData();
     setImages([]);
     setTasks([]);
-    setSlots(DEFAULT_FREE_SLOTS);
+    setApiKey('');
+    setModel(DEFAULT_MODEL);
+    setSlots({ ...DEFAULT_SLOTS });
     toast('Đã xóa toàn bộ dữ liệu cục bộ.', 'info');
   }, [toast]);
 
@@ -342,12 +313,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     images,
     tasks,
     schedule,
+    apiKey,
+    model,
     slots,
     hasKey,
     pendingCount,
-    reviewCount,
     isScanning,
-    lastTab,
     addImages,
     removeImage,
     loadPreset,
@@ -356,10 +327,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTask,
     upsertTask,
     resolveClarification,
-    resolveClarifications,
+    resolveAllClarifications,
+    saveApiSettings,
+    testApiKey,
     toggleSlot,
-    saveSlot,
-    deleteSlot,
     clearAll,
   };
 

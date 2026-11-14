@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Left vertical stem acting as calendar timeline with hour tick marks -->
+  <rect x="128" y="104" width="36" height="304" rx="18" fill="#2563EB"/>
+  <!-- Hour tick markers -->
+  <circle cx="146" cy="170" r="6" fill="#FFFFFF"/>
+  <circle cx="146" cy="256" r="6" fill="#FFFFFF"/>
+  <circle cx="146" cy="342" r="6" fill="#FFFFFF"/>
+  <!-- Upper loop of P forming camera viewfinder frame embracing date target -->
+  <path d="M 164 104 L 320 104 A 78 78 0 0 1 320 260 L 164 260" fill="none" stroke="#2563EB" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Focus viewfinder corner inside the P loop -->
+  <path d="M 280 152 L 310 152 A 12 12 0 0 1 322 164 L 322 194" fill="none" stroke="#60A5FA" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Center scheduled pin / dot -->
+  <circle cx="240" cy="182" r="28" fill="#059669"/>
+  <path d="M 230 182 L 237 189 L 251 175" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

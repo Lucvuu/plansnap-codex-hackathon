@@ -3,210 +3,276 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlanSnap - Pitch Deck (Codex Hackathon Hanoi)</title>
+  <title>PlanSnap · Pitch Deck | Codex Community Hackathon Hà Nội</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b0f19;
-      --card-bg: #151c2e;
-      --border: #232f48;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
-      --accent-blue: #3b82f6;
-      --accent-green: #10b981;
-      --accent-amber: #f59e0b;
-      --accent-purple: #a855f7;
+      --bg-dark: #090D16;
+      --card-dark: #111827;
+      --border-dark: #1F2937;
+      
+      --slide-bg: #FFFFFF;
+      --canvas: #F8FAFC;
+      --border: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --text-sub: #475569;
+      
+      --brand: #2563EB;
+      --brand-navy: #1E3A8A;
+      --brand-light: #EFF6FF;
+      --emerald: #059669;
+      --emerald-light: #ECFDF5;
+      --coral: #E11D48;
+      --coral-light: #FFF1F2;
+      --amber: #D97706;
+      --amber-light: #FFFBEB;
+
+      --font: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font);
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
     }
 
-    .slide-deck {
+    /* Top Control Bar */
+    .top-bar {
+      height: 54px;
+      background: #0B1120;
+      border-bottom: 1px solid #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      color: #94A3B8;
+      font-size: 13px;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+    .brand-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-meta strong {
+      color: #F8FAFC;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .tag-hackathon {
+      background: rgba(37, 99, 235, 0.2);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-tool {
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #F8FAFC;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      font-family: var(--font);
+    }
+    .btn-tool:hover {
+      background: #334155;
+    }
+    .btn-tool.active {
+      background: var(--brand);
+      border-color: var(--brand);
+    }
+
+    /* Main Viewport Container */
+    .viewport {
       flex: 1;
-      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 40px;
+      padding: 24px 32px;
+      position: relative;
+      background: var(--bg-dark);
     }
 
+    /* 16:9 Presentation Stage */
+    .slide-stage {
+      width: 100%;
+      max-width: 1240px;
+      aspect-ratio: 16 / 9;
+      background: var(--slide-bg);
+      border-radius: 24px;
+      box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Individual Slide */
     .slide {
       display: none;
       width: 100%;
-      max-width: 1100px;
-      height: 90%;
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 48px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      height: 100%;
+      padding: 48px 56px;
       flex-direction: column;
       justify-content: space-between;
-      animation: slideIn 0.3s ease-out;
+      animation: slideFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
-    .slide.active {
-      display: flex;
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(15px); }
+    .slide.active { display: flex; }
+    @keyframes slideFade {
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Slide Header */
     .slide-header {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .slide-eyebrow {
+      display: flex;
       align-items: center;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 8px;
     }
-
-    .slide-tag {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--accent);
-      background: rgba(56, 189, 248, 0.1);
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(56, 189, 248, 0.2);
-    }
-
-    .slide-score {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent-green);
-      background: rgba(16, 185, 129, 0.1);
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .slide-title {
-      font-size: 36px;
+    .pill-step {
+      font-size: 11px;
       font-weight: 800;
-      margin-top: 16px;
-      background: linear-gradient(135deg, #ffffff, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: var(--brand-light);
+      color: var(--brand);
+    }
+    .time-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      background: var(--canvas);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .slide-title {
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.25;
+      letter-spacing: -0.6px;
+    }
+    .slide-title span.hl { color: var(--brand); }
+    .slide-desc {
+      font-size: 16px;
+      color: var(--text-sub);
+      margin-top: 6px;
     }
 
+    /* Slide Body (Spacious, clean, airy) */
     .slide-body {
       flex: 1;
-      margin: 24px 0;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 20px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 24px;
     }
 
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
+    /* Grids */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: stretch; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
 
-    .stat-box {
-      background: rgba(15, 23, 42, 0.6);
+    /* Visual Feature Cards */
+    .deck-card {
+      background: var(--canvas);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 18px;
       padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      text-align: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+    .deck-card.highlight {
+      background: #FFFFFF;
+      border: 2px solid var(--brand);
+      box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.1);
+    }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--brand-light);
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .card-text {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.55;
     }
 
-    .stat-number {
-      font-size: 44px;
-      font-weight: 800;
-      color: var(--accent);
-    }
-
-    .stat-label {
-      font-size: 15px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    .quote-box {
-      background: rgba(59, 130, 246, 0.08);
-      border-left: 4px solid var(--accent-blue);
-      border-radius: 8px;
-      padding: 18px 24px;
-      font-style: italic;
-      color: #e2e8f0;
-      font-size: 18px;
-      line-height: 1.5;
-    }
-
-    .feature-card {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px;
+    /* Numbers Hero */
+    .stat-hero {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 2px;
     }
-
-    .feature-icon {
-      font-size: 28px;
+    .stat-num {
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--brand);
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -1px;
     }
-
-    .feature-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: white;
-    }
-
-    .feature-desc {
+    .stat-label {
       font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    .table-custom {
-      width: 100%;
-      border-collapse: collapse;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .table-custom th, .table-custom td {
-      padding: 14px 18px;
-      border: 1px solid var(--border);
-      text-align: left;
-      font-size: 15px;
-    }
-
-    .table-custom th {
-      background-color: #1e293b;
-      color: var(--accent);
       font-weight: 700;
+      color: var(--text-main);
+    }
+    .stat-note {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
-    .table-custom tr:nth-child(even) {
-      background-color: rgba(15, 23, 42, 0.4);
-    }
-
+    /* Slide Footer */
     .slide-footer {
       display: flex;
       justify-content: space-between;
@@ -216,424 +282,762 @@
       font-size: 13px;
       color: var(--text-muted);
     }
+    .footer-highlight {
+      font-weight: 700;
+      color: var(--brand-navy);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-    /* Controls bar */
-    .controls {
-      height: 60px;
-      background: #0f172a;
-      border-top: 1px solid var(--border);
+    /* Flow Diagrams */
+    .flow-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 40px;
+      gap: 16px;
+    }
+    .flow-node {
+      flex: 1;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 18px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .flow-arrow {
+      color: #94A3B8;
+      font-size: 24px;
+      font-weight: 800;
     }
 
+    /* Bottom Navigation Bar */
+    .bottom-bar {
+      height: 60px;
+      background: #0B1120;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      flex-shrink: 0;
+      z-index: 50;
+    }
     .btn-nav {
-      background: #1e293b;
-      border: 1px solid var(--border);
-      color: white;
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #F8FAFC;
       padding: 8px 18px;
       border-radius: 8px;
       cursor: pointer;
+      font-size: 13px;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 8px;
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .btn-nav:hover:not(:disabled) {
+      background: var(--brand);
+      border-color: var(--brand);
+    }
+    .btn-nav:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .dots-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot-item {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #334155;
+      cursor: pointer;
       transition: all 0.2s;
     }
-
-    .btn-nav:hover {
-      background: var(--accent-blue);
+    .dot-item.active {
+      background: var(--brand);
+      width: 26px;
+      border-radius: 6px;
     }
 
-    .slide-counter {
+    /* Speaker Notes Box */
+    .speaker-drawer {
+      position: fixed;
+      bottom: 70px;
+      right: 28px;
+      width: 420px;
+      max-height: 340px;
+      background: #0F172A;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      color: #F8FAFC;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 100;
+    }
+    .speaker-drawer.open { display: flex; }
+    .drawer-header {
+      background: #1E293B;
+      padding: 12px 18px;
+      font-size: 13px;
       font-weight: 700;
-      color: var(--accent);
+      color: #60A5FA;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .drawer-body {
+      padding: 16px 18px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #E2E8F0;
+      overflow-y: auto;
+    }
+
+    /* PRINT TO PDF OPTIMIZATIONS */
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .top-bar, .bottom-bar, .speaker-drawer { display: none !important; }
+      .viewport { padding: 0 !important; background: transparent !important; }
+      .slide-stage {
+        max-width: 100% !important;
+        aspect-ratio: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+      }
+      .slide {
+        display: flex !important;
+        page-break-after: always;
+        width: 100vw !important;
+        height: 100vh !important;
+        padding: 40px !important;
+      }
+      @page {
+        size: 16in 9in landscape;
+        margin: 0;
+      }
     }
   </style>
 </head>
 <body>
 
-  <div class="slide-deck">
-
-    <!-- SLIDE 1: Cover -->
-    <div class="slide active">
-      <div class="slide-header">
-        <span class="slide-tag">Codex Community Hackathon – Hà Nội (14/11/2026)</span>
-        <span class="slide-score">Team technoComplex</span>
-      </div>
-      <div class="slide-body" style="text-align: center; gap: 24px;">
-        <div style="font-size: 64px;">⚡</div>
-        <h1 style="font-size: 54px; font-weight: 900; background: linear-gradient(135deg, #60a5fa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-          PlanSnap (Capture → Plan)
-        </h1>
-        <p style="font-size: 24px; color: var(--text-muted); max-width: 800px; margin: 0 auto; line-height: 1.5;">
-          Biến hàng chục ảnh chụp màn hình và tin nhắn rải rác thành kế hoạch cá nhân chỉ dưới 1 phút.
-        </p>
-        <div style="display: inline-flex; gap: 16px; justify-content: center; margin-top: 20px;">
-          <span style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent-blue); padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-            📱 Mobile Standalone PWA
-          </span>
-          <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-green); padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-            🧠 Vision Multi-modal Agent
-          </span>
-          <span style="background: rgba(168, 85, 247, 0.15); border: 1px solid var(--accent-purple); padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-            ⏱️ Deterministic Scheduling
-          </span>
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>Sản phẩm dự thi chính thức</span>
-        <span>Phím ➔ hoặc Space để tiếp tục</span>
-      </div>
+  <!-- Top Controls -->
+  <div class="top-bar">
+    <div class="brand-meta">
+      <strong>PlanSnap</strong>
+      <span class="tag-hackathon">Codex Community Hackathon Hà Nội</span>
+      <span style="font-size: 12px; color: #94A3B8;">Đội: <strong>technoComplex</strong></span>
     </div>
 
-    <!-- SLIDE 2: Problem & Real Evidence -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag">Vấn đề thật của người dùng</span>
-        <span class="slide-score">Mục tiêu: 35/35 Điểm (Tiêu chí 2)</span>
-      </div>
-      <h2 class="slide-title">Thông tin phân mảnh chôn vùi trong thư viện ảnh</h2>
-      <div class="slide-body">
-        <div class="grid-3">
-          <div class="stat-box">
-            <div class="stat-number">35.2</div>
-            <div class="stat-label">Ảnh chụp màn hình chứa deadline nằm rải rác trong thư viện ảnh mỗi tháng (30 SV phỏng vấn sâu + 156 SV khảo sát diện rộng tại Hà Nội).</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number">96.7%</div>
-            <div class="stat-label">Sinh viên từng nộp bài tập sát hạn (< 2 tiếng trước hạn) vì không biết phân bổ thời gian làm việc.</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number">86.7%</div>
-            <div class="stat-label">Từng bỏ sót hoặc nhầm ngày nộp bài do các mốc thời hạn mơ hồ ("thứ 6 tuần sau", "buổi học tới").</div>
-          </div>
-        </div>
-        <div class="quote-box">
-          "Giảng viên nhắn 'thứ 6 tuần sau nộp', em chụp màn hình lại xong vài hôm sau lướt lại chẳng nhớ là thứ 6 tuần nào, tới lúc nhớ ra thì chỉ còn vài tiếng trước hạn nộp bài!"<br>
-          <strong style="color: var(--accent); font-size: 14px; margin-top: 6px; display: inline-block;">— Trần Thùy L., Sinh viên năm 3 ĐH Ngoại Thương Hà Nội</strong>
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>Bằng chứng định tính & định lượng: 30 PV sâu + 156 khảo sát thực tế</span>
-        <span>docs/09_Bieu_mau_Khao_sat_va_Dataset.md</span>
-      </div>
+    <div class="top-actions">
+      <button class="btn-tool" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Xuất PDF / In slide
+      </button>
+      <button class="btn-tool" id="btnNotes" onclick="toggleNotes()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Ghi chú diễn giả (S)
+      </button>
+      <button class="btn-tool" onclick="toggleFullscreen()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        Toàn màn hình (F)
+      </button>
     </div>
-
-    <!-- SLIDE 3: Solution & Architecture -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag">Giải pháp & Kiến trúc AI</span>
-        <span class="slide-score">Bảo vệ tính xác thực 100%</span>
-      </div>
-      <h2 class="slide-title">Hybrid Agent: Vision LLM + Thuật toán Code thuần</h2>
-      <div class="slide-body">
-        <div class="grid-3">
-          <div class="feature-card">
-            <div class="feature-icon">👁️</div>
-            <div class="feature-title">Multi-modal Vision Agent</div>
-            <div class="feature-desc">
-              Đọc ảnh đa nguồn (Zalo, LMS, Slide). Giải mã tem thời gian tin nhắn Zalo để xác định ngày tương đối. Luôn đối chiếu <code>source_quote</code> chống bịa việc.
-            </div>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">⚠️</div>
-            <div class="feature-title">Human-in-the-Loop 1-Chạm</div>
-            <div class="feature-desc">
-              Phát hiện hạn chót mơ hồ (Confidence < 0.75). Tự bật thẻ hỏi lại với các nút chọn ngày cụ thể. Tuyệt đối không bắt người dùng gõ phím.
-            </div>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">⚡</div>
-            <div class="feature-title">Deterministic Scheduler</div>
-            <div class="feature-desc">
-              Thuật toán Code thuần phân bổ phiên vào khung giờ rảnh (Earliest Deadline First). Chừa buffer an toàn 3 tiếng trước hạn. Không bao giờ ảo giác lịch.
-            </div>
-          </div>
-        </div>
-        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border); border-radius: 12px; padding: 14px; font-family: monospace; font-size: 14px; color: #38bdf8;">
-          Luồng khép kín: Chọn 1–5 ảnh ➔ Canvas Resize Client ➔ Vision Agent ➔ Clarify Card ➔ Scheduler ➔ Xuất file .ics
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>docs/01_PRD.md & docs/02_AGENTS.md</span>
-        <span>Phản hồi toàn luồng < 8 giây qua 4G</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 4: Live Demo -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
-          LIVE DEMO TRÊN ĐIỆN THOẠI THẬT
-        </span>
-        <span class="slide-score">Mục tiêu: 40/40 Điểm (Tiêu chí 1 - Ưu tiên phá hòa #1)</span>
-      </div>
-      <h2 class="slide-title">Trực chiến trên điện thoại thật trước mặt Ban Giám Khảo</h2>
-      <div class="slide-body">
-        <div class="grid-2">
-          <div class="feature-card" style="border-left: 4px solid var(--accent-red);">
-            <div class="feature-title">1. Bài test Sống còn: Swipe-kill & Reopen</div>
-            <div class="feature-desc">
-              - Thao tác vuốt đóng hẳn app (Swipe kill) trong App Switcher trước mặt BGK.<br>
-              - Mở lại từ icon trên màn hình chính: Toàn bộ dữ liệu khôi phục tức thì qua <strong>IndexedDB</strong>.<br>
-              - Chứng minh không phụ thuộc trình duyệt hay session RAM.
-            </div>
-          </div>
-          <div class="feature-card" style="border-left: 4px solid var(--accent-amber);">
-            <div class="feature-title">2. Luồng AI Live bóc tách 3 ảnh thật</div>
-            <div class="feature-desc">
-              - Nạp 3 ảnh: Tin nhắn Zalo lớp, Slide đề cương, Cổng LMS.<br>
-              - AI live đọc tem thời gian, trích xuất hạn chót kèm <code>source_quote</code>.<br>
-              - Thẻ hỏi lại 1-chạm: Chọn "20/11 hay 27/11" chỉ với 1 cái chạm tay.
-            </div>
-          </div>
-        </div>
-        <div class="feature-card" style="border: 2px dashed #a855f7; background: rgba(168, 85, 247, 0.08);">
-          <div class="feature-title" style="color: #c084fc;">
-            🎯 KHOẢNH KHẮC "WOW": Thử thách Chữ viết tay của Ban Giám Khảo
-          </div>
-          <div class="feature-desc" style="font-size: 15px;">
-            Mời 01 vị Giám khảo viết tay bất kỳ một đầu việc và hạn chót lên giấy ➔ Cầm điện thoại chụp trực tiếp ➔ AI bóc tách ngay tại chỗ và tự động xếp chèn phiên làm việc vào lịch tuần trước mắt toàn thể hội trường!
-          </div>
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>Tuân thủ 100% kịch bản docs/03_Kich_ban_Demo.md</span>
-        <span>Cam kết: Không dùng Video thay thế!</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 5: Benchmark Evidence -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag">Hiệu quả thực chứng</span>
-        <span class="slide-score">Bằng chứng định lượng A/B</span>
-      </div>
-      <h2 class="slide-title">Benchmark Thực nghiệm: Nhanh hơn gấp 9.7 lần</h2>
-      <div class="slide-body">
-        <table class="table-custom">
-          <thead>
-            <tr>
-              <th>Phương pháp thực hiện</th>
-              <th>Thời gian hoàn thành (5 việc)</th>
-              <th>Thao tác người dùng</th>
-              <th>Khoảng đệm an toàn</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Làm thủ công (Manual)</strong></td>
-              <td style="color: #f87171; font-weight: 700;">7 phút 45 giây (465s)</td>
-              <td>Mở từng ảnh, đọc tin nhắn, gõ tay từng chữ vào Lịch</td>
-              <td>Không có (Dồn sát giờ)</td>
-            </tr>
-            <tr>
-              <td><strong>PlanSnap (Capture → Plan)</strong></td>
-              <td style="color: #4ade80; font-weight: 700;">48 giây</td>
-              <td>Chọn ảnh ➔ 1 chạm xác nhận ➔ Xuất .ics</td>
-              <td>Tự động chừa 3 tiếng trước hạn</td>
-            </tr>
-            <tr>
-              <td><strong>MỨC ĐỘ CẢI THIỆN</strong></td>
-              <td colspan="3" style="color: var(--accent); font-weight: 800; font-size: 16px;">
-                ⚡ Tiết kiệm 89.7% thời gian — Nhanh hơn gấp 9.7 lần! Độ chính xác AI trên 40 ảnh test đạt 90.0%.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="grid-2">
-          <div class="stat-box" style="padding: 16px;">
-            <div style="font-size: 26px; font-weight: 700; color: #4ade80;">92.5%</div>
-            <div class="stat-label">Tỷ lệ bóc tách đúng tên việc và yêu cầu bài tập trên bộ test 40 screenshot.</div>
-          </div>
-          <div class="stat-box" style="padding: 16px;">
-            <div style="font-size: 26px; font-weight: 700; color: #38bdf8;">100%</div>
-            <div class="stat-label">Tỷ lệ phát hiện chính xác các mốc thời gian mơ hồ cần kích hoạt Human-in-the-Loop.</div>
-          </div>
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>Dữ liệu thực nghiệm từ 5 sinh viên đối chứng độc lập</span>
-        <span>docs/09_Bieu_mau_Khao_sat_va_Dataset.md</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 6: Go-to-market & Traction -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag">Mở rộng thị trường</span>
-        <span class="slide-score">Mục tiêu: 25/25 Điểm (Tiêu chí 3)</span>
-      </div>
-      <h2 class="slide-title">Kênh Lớp trưởng 0 đồng & Traction Beta thực tế</h2>
-      <div class="slide-body">
-        <div class="grid-3">
-          <div class="stat-box">
-            <div class="stat-number">42</div>
-            <div class="stat-label">Sinh viên đại học đã cài đặt PWA và sử dụng thực tế bản Beta trước ngày 14/11.</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number">218</div>
-            <div class="stat-label">Đầu việc học tập đã được AI bóc tách và xếp lịch thành công.</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number">92.8%</div>
-            <div class="stat-label">Tỷ lệ người dùng chấp nhận kế hoạch và bấm xuất sang Calendar (39/42 bạn).</div>
-          </div>
-        </div>
-        <div class="grid-2">
-          <div class="feature-card">
-            <div class="feature-title">🎯 Kênh phân phối Ban Cán Sự (Chi phí 0đ)</div>
-            <div class="feature-desc">
-              Lớp trưởng và Bí thư là người trực tiếp dặn dò bài tập vào nhóm Zalo lớp. Họ dùng PlanSnap tạo kế hoạch mẫu và gửi link cho cả lớp ➔ Cả lớp cài PWA trong 3 giây.
-            </div>
-          </div>
-          <div class="feature-card">
-            <div class="feature-title">🔄 Vòng lan truyền tự nhiên (Viral Loop)</div>
-            <div class="feature-desc">
-              Một sinh viên bóc tách deadline bài tập nhóm ➔ Chia sẻ link kế hoạch cho 4 bạn cùng nhóm ➔ 4 bạn mở ra và cài đặt app ngay để đồng bộ lịch làm bài chung.
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>Không nói "ai cũng cần" — Tập trung chính xác vào sinh viên đại học</span>
-        <span>docs/01_PRD.md</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 7: Global Expansion -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag">Lộ trình Toàn cầu</span>
-        <span class="slide-score">Khả năng Scale Vô hạn</span>
-      </div>
-      <h2 class="slide-title">Từ Sinh viên Hà Nội đến Thị trường Toàn cầu</h2>
-      <div class="slide-body">
-        <div class="grid-3">
-          <div class="feature-card" style="border-top: 4px solid var(--accent-blue);">
-            <div class="feature-title">Giai đoạn 1 (Q4/2026)</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--accent);">5.000 Sinh viên Hà Nội</div>
-            <div class="feature-desc">
-              Thâm nhập qua các trường ĐH lớn: Bách Khoa, Kinh tế quốc dân, Ngoại thương, Quốc gia. Hoàn thiện tính năng đọc thời khóa biểu.
-            </div>
-          </div>
-          <div class="feature-card" style="border-top: 4px solid var(--accent-green);">
-            <div class="feature-title">Giai đoạn 2 (Q1/2027)</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--accent-green);">Sinh viên VN & Người mới đi làm</div>
-            <div class="feature-desc">
-              Mở rộng toàn quốc. Bổ sung phân khúc người mới đi làm: Bóc tách biên bản họp, ảnh bảng Kanban, việc giao qua chat công việc.
-            </div>
-          </div>
-          <div class="feature-card" style="border-top: 4px solid var(--accent-purple);">
-            <div class="feature-title">Giai đoạn 3 (Q2/2027)</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--accent-purple);">Mở rộng Đông Nam Á & Toàn cầu</div>
-            <div class="feature-desc">
-              Đánh vào Thái Lan, Indonesia, Philippines — các quốc gia có văn hóa giao việc qua Line/WhatsApp/Telegram tương tự Việt Nam.
-            </div>
-          </div>
-        </div>
-        <div class="quote-box" style="border-left-color: var(--accent-purple);">
-          <strong>Lợi thế công nghệ cốt lõi:</strong> Bản chất mô hình Vision LLM đã hỗ trợ đa ngôn ngữ bẩm sinh. Việc mở rộng sang thị trường quốc tế chỉ đòi hỏi cấu hình ngôn ngữ hiển thị và múi giờ, chi phí công nghệ biên gần như bằng 0!
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>docs/04_Pitch_Deck_Script.md</span>
-        <span>Unit Economics tối ưu nhờ Serverless</span>
-      </div>
-    </div>
-
-    <!-- SLIDE 8: Transparency & Team -->
-    <div class="slide">
-      <div class="slide-header">
-        <span class="slide-tag">Minh bạch Quy chế & Đội ngũ</span>
-        <span class="slide-score">Bảo toàn điểm số tối đa</span>
-      </div>
-      <h2 class="slide-title">Minh bạch Tuyệt đối: Pre-hackathon Git Tag</h2>
-      <div class="slide-body">
-        <div class="grid-2">
-          <div class="feature-card">
-            <div class="feature-title" style="color: #60a5fa;">📦 Phần làm trước (Đã đóng dấu Git Tag)</div>
-            <div class="feature-desc">
-              - Khảo sát 30 SV phỏng vấn sâu 1-on-1 & 156 SV khảo sát diện rộng.<br>
-              - Thu thập bộ test benchmark 40 screenshot thật đã che PII.<br>
-              - Dựng khung PWA Shell Standalone & IndexedDB persistence.<br>
-              - Module Canvas nén ảnh Client.<br>
-              - Bản thử nghiệm Beta với 42 người dùng thực tế (218 đầu việc).<br>
-              - Đóng dấu Commit Tag: <code>pre-hackathon</code> trước ngày 14/11.
-            </div>
-          </div>
-          <div class="feature-card">
-            <div class="feature-title" style="color: #4ade80;">⚡ Phần làm tại chỗ ngày 14/11 (Live Code)</div>
-            <div class="feature-desc">
-              - Thuật toán xếp lịch tự động chừa buffer (Scheduler).<br>
-              - UI thẻ hỏi lại mốc mơ hồ 1-chạm (Human-in-the-Loop).<br>
-              - Module xuất file iCalendar (.ics) tương thích Calendar.<br>
-              - Tối ưu hóa độ trễ phản hồi (< 8 giây qua 4G).<br>
-              - Diễn tập Kịch bản Live Demo 3 lần trên mạng 4G.
-            </div>
-          </div>
-        </div>
-        <div style="text-align: center; margin-top: 10px;">
-          <h3 style="font-size: 22px; font-weight: 700; color: white;">
-            PlanSnap – Làm chủ thời gian từ những bức ảnh chụp.
-          </h3>
-          <p style="color: var(--text-muted); font-size: 15px; margin-top: 4px;">
-            Xin trân trọng cảm ơn Ban Giám khảo và Hội trường!
-          </p>
-        </div>
-      </div>
-      <div class="slide-footer">
-        <span>Team technoComplex – Sẵn sàng bứt phá ngày 14/11/2026</span>
-        <span>Phím ⬅ / ➔ để chuyển slide</span>
-      </div>
-    </div>
-
   </div>
 
-  <!-- Bottom Navigation Controls -->
-  <footer class="controls">
-    <button id="btn-prev" class="btn-nav">⬅ Slide trước</button>
-    <div class="slide-counter">
-      Slide <span id="current-slide">1</span> / <span id="total-slides">8</span>
+  <!-- Viewport -->
+  <div class="viewport">
+    <div class="slide-stage" id="stage">
+
+      <!-- SLIDE 1: COVER -->
+      <div class="slide active" data-index="0" data-notes="Một deadline ở Zalo, một ở LMS. Việc phải làm trước khi bắt đầu học là đi tìm và nhập lại chúng. Hôm nay chúng tôi mang đến PlanSnap: Từ ảnh thông báo đến lịch làm việc có thể kiểm tra.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step">Khung 1</span>
+              <span class="time-badge">0:20</span>
+            </div>
+            <h1 class="slide-title">Từ ảnh thông báo bài tập<br>đến <span class="hl">lịch làm việc có thể kiểm tra</span>.</h1>
+            <p class="slide-desc">Cầu nối AI di động biến thông tin học tập phân tán thành phiên hành động cá nhân.</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 15px; color: var(--text-main);">technoComplex</div>
+            <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">14/11/2026 · Hà Nội</div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--brand); margin-top: 4px;">Android Expo APK</div>
+          </div>
+        </div>
+
+        <div class="slide-body">
+          <div class="grid-2" style="align-items: center;">
+            <div class="deck-card highlight" style="padding: 32px;">
+              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                <img src="../design/brand/plansnap-icon-512.png" alt="PlanSnap Icon" style="width: 60px; height: 60px; border-radius: 14px;">
+                <div>
+                  <h3 style="font-size: 24px; font-weight: 800;">Plan<span style="color: var(--brand);">Snap</span></h3>
+                  <p style="font-size: 14px; color: var(--text-muted);">Snap to Schedule in Seconds</p>
+                </div>
+              </div>
+              <p style="font-size: 15px; color: var(--text-sub); line-height: 1.6;">
+                Sinh viên không thiếu app ghi chú. Họ thiếu một <strong>công cụ kết nối tự động</strong> giữa ảnh chụp bài tập ở Zalo/LMS với khung giờ rảnh thực tế trong ngày.
+              </p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="deck-card" style="padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 20px;">📸</span>
+                  <div>
+                    <h4 style="font-size: 14.5px; font-weight: 700;">Chụp & Đọc ảnh trực tiếp</h4>
+                    <p style="font-size: 12.5px; color: var(--text-muted);">Gemini Vision trích xuất hạn chót kèm nguyên văn câu nguồn đối chiếu.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="deck-card" style="padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 20px;">⚡</span>
+                  <div>
+                    <h4 style="font-size: 14.5px; font-weight: 700;">Smart Review 1 Chạm</h4>
+                    <p style="font-size: 12.5px; color: var(--text-muted);">Tự động chọn mốc tối ưu khi gặp khoảng ngày, người dùng chốt trong 1 giây.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="deck-card" style="padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 20px;">🗓️</span>
+                  <div>
+                    <h4 style="font-size: 14.5px; font-weight: 700;">Xếp lịch vào giờ rảnh</h4>
+                    <p style="font-size: 12.5px; color: var(--text-muted);">Thuật toán EDF bố trí phiên làm việc hợp lý và xuất thẳng vào Android Calendar.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">“Một deadline ở Zalo, một ở LMS. Việc phải làm là đi tìm và nhập lại chúng.”</div>
+          <div>Trang 1 / 7</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 2: PROBLEM & EVIDENCE -->
+      <div class="slide" data-index="1" data-notes="Sinh viên phải tự mình điều phối giữa LMS trường, tin nhắn nhóm Zalo và ảnh slide bài giảng. Nghiên cứu độc lập Monash và ĐH Thủ Dầu Một đều chứng minh Zalo là kênh trao đổi chính nhưng gây phân mảnh dữ liệu nghiêm trọng.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step">Khung 2</span>
+              <span class="time-badge">0:45</span>
+            </div>
+            <h1 class="slide-title">Sinh viên phải <span class="hl">tự ghép thông tin</span> giữa nhiều kênh.</h1>
+            <p class="slide-desc">Thông báo nằm một nơi, lịch học nằm nơi khác — lãng phí thời gian và dễ trễ hạn.</p>
+          </div>
+          <span style="background: #EDE9FE; color: #5B21B6; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Nghiên cứu công khai</span>
+        </div>
+
+        <div class="slide-body">
+          <!-- Flow -->
+          <div class="flow-container">
+            <div class="flow-node">
+              <span style="font-size: 24px;">💬</span>
+              <div style="font-size: 14px; font-weight: 700;">Thông báo rải rác</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Zalo, LMS trường, ảnh slide</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node" style="border-color: #FCD34D; background: #FFFBEB;">
+              <span style="font-size: 24px;">🔍</span>
+              <div style="font-size: 14px; font-weight: 700;">Tìm kiếm lại</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Bới tìm tin nhắn cũ trong thư viện</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+              <span style="font-size: 24px;">🧩</span>
+              <div style="font-size: 14px; font-weight: 700;">Giải mã hạn mơ hồ</div>
+              <div style="font-size: 12px; color: var(--text-muted);">“Thứ 6 tuần sau” là ngày nào?</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node" style="border-color: #FECDD3; background: #FFF1F2;">
+              <span style="font-size: 24px;">⏰</span>
+              <div style="font-size: 14px; font-weight: 700; color: var(--coral);">Dồn bài sát hạn</div>
+              <div style="font-size: 12px; color: var(--coral);">Quên lịch hoặc làm vội vàng</div>
+            </div>
+          </div>
+
+          <!-- Academic Citations -->
+          <div class="grid-2">
+            <div class="deck-card">
+              <div style="font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase;">Monash University (2026) · N=15</div>
+              <div class="card-title">Chắp vá giữa các nền tảng (Patchwork LMS)</div>
+              <div class="card-text">
+                Người học tại ĐH công lập Việt Nam bắt buộc phải tự điều phối thủ công giữa hệ thống LMS chính thức, ứng dụng nhắn tin (Zalo), bản lưu trữ cá nhân và bạn bè để không bị lỡ hạn bài tập nhóm.
+              </div>
+            </div>
+
+            <div class="deck-card">
+              <div style="font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase;">ĐH Thủ Dầu Một (TDMU) · N=112 + 8</div>
+              <div class="card-title">Zalo là kênh điều phối chính</div>
+              <div class="card-text">
+                Khảo sát ghi nhận Zalo là kênh phổ biến nhất để sinh viên theo dõi thông báo và trao đổi bài vở của giảng viên, dẫn tới tình trạng dữ liệu hạn chót bị chôn vùi trong tin nhắn trò chuyện.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">Dữ liệu độc lập khẳng định: Thông tin học tập phân mảnh là rào cản lớn nhất của sinh viên.</div>
+          <div>Trang 2 / 7</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3: SOLUTION & ARCHITECTURE -->
+      <div class="slide" data-index="2" data-notes="Giải pháp của PlanSnap gồm 3 bước: 1. Chụp ảnh thông báo; 2. Gemini Vision đọc hạn và trích nguyên văn câu nguồn; 3. Tự động bố trí phiên làm việc vào khung giờ rảnh và xuất ra lịch hệ thống.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step">Khung 3</span>
+              <span class="time-badge">Giải pháp</span>
+            </div>
+            <h1 class="slide-title">Giải pháp PlanSnap: <span class="hl">Chụp → Hiểu → Xếp lịch</span></h1>
+            <p class="slide-desc">Tự động hóa hoàn toàn luồng biến ảnh chụp thành lịch làm việc thực thi.</p>
+          </div>
+        </div>
+
+        <div class="slide-body">
+          <div class="grid-3">
+            <div class="deck-card highlight">
+              <div class="card-icon">01</div>
+              <div class="card-title">1. Chụp & Nhập 1-Chạm</div>
+              <div class="card-text">
+                Chọn ảnh chụp Zalo, LMS hoặc slide bài giảng. Ứng dụng nén ảnh trực tiếp trên thiết bị để tối ưu tốc độ và bảo vệ tính riêng tư.
+              </div>
+            </div>
+
+            <div class="deck-card highlight">
+              <div class="card-icon">02</div>
+              <div class="card-title">2. Đối chiếu câu nguồn</div>
+              <div class="card-text">
+                Gemini Vision trích xuất tên việc, hạn chót và <strong>nguyên văn câu nguồn</strong> trong ảnh để người dùng dễ dàng kiểm chứng lại quyết định.
+              </div>
+            </div>
+
+            <div class="deck-card highlight">
+              <div class="card-icon">03</div>
+              <div class="card-title">3. Xếp lịch vào giờ rảnh</div>
+              <div class="card-text">
+                Thuật toán EDF phân bổ phiên làm việc phù hợp vào các buổi tối hoặc cuối tuần rảnh rỗi, xuất file .ics đồng bộ thẳng vào Android Calendar.
+              </div>
+            </div>
+          </div>
+
+          <div style="background: var(--brand-light); border-left: 4px solid var(--brand); padding: 14px 18px; border-radius: 10px; font-size: 13.5px; color: var(--text-main);">
+            <strong>Đột phá Smart Review:</strong> Khi gặp thông báo có khoảng ngày (VD: đợt thi 29–30/05), app tự động gợi ý ngày tối ưu nhất để người dùng xác nhận tất cả chỉ bằng <strong>1 chạm</strong>, không tra khảo lặp lại.
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">Loại bỏ hoàn toàn công việc nhập liệu thủ công; câu nguồn giúp kiểm chứng minh bạch.</div>
+          <div>Trang 3 / 7</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 4: LIVE DEMO SCREEN -->
+      <div class="slide" data-index="3" data-notes="Bây giờ chúng tôi sẽ demo trực tiếp trên điện thoại Android thật. Đóng hẳn app, mở lại từ icon APK. Chọn ảnh thật, Gemini trích xuất trực tiếp tên việc và câu nguồn. Người dùng xác nhận 1 chạm và xem các phiên học vừa được xếp trong lịch.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step" style="background: #ECFDF5; color: var(--emerald);">Trực tiếp</span>
+              <span class="time-badge">2:15</span>
+            </div>
+            <h1 class="slide-title">Demo trên <span class="hl">Android Thật</span> (Bản Expo APK).</h1>
+            <p class="slide-desc">Kịch bản kiểm chứng: Đóng hẳn → Mở lại → Quét Gemini live → Xem lịch tuần.</p>
+          </div>
+          <span style="background: #D1FAE5; color: #065F46; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Live trên thiết bị</span>
+        </div>
+
+        <div class="slide-body">
+          <div class="grid-2" style="align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="deck-card" style="padding: 14px 18px;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">1. Khởi động từ icon APK</div>
+                <div style="font-size: 12.5px; color: var(--text-muted);">Khôi phục dữ liệu từ AsyncStorage; API Key lưu trong SecureStore.</div>
+              </div>
+
+              <div class="deck-card" style="padding: 14px 18px;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">2. Chọn ảnh thật & Gemini đọc live</div>
+                <div style="font-size: 12.5px; color: var(--text-muted);">Trích xuất hạn chót kèm nguyên văn câu trích dẫn để đối chiếu.</div>
+              </div>
+
+              <div class="deck-card" style="padding: 14px 18px;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">3. Xác nhận 1-chạm & Xuất lịch .ics</div>
+                <div style="font-size: 12.5px; color: var(--text-muted);">Tự động xếp lịch vào khung rảnh và chia sẻ ra Android Calendar.</div>
+              </div>
+            </div>
+
+            <!-- Demo Live Box -->
+            <div class="deck-card highlight" style="text-align: center; padding: 36px 24px; background: #F8FAFC;">
+              <div style="width: 56px; height: 56px; border-radius: 28px; background: var(--brand-light); color: var(--brand); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              </div>
+              <h3 style="font-size: 19px; font-weight: 800; color: var(--text-main);">MÀN HÌNH ĐIỆN THOẠI ANDROID</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin: 6px 0 16px;">Thiết bị vật lý Android 14+ · Bản build Expo APK</p>
+              <div style="font-size: 12px; font-family: var(--mono); color: var(--text-sub); background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                Video 60–90s dự phòng sẵn sàng nếu gặp sự cố mạng
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">Toàn bộ thao tác thực tế được trình diễn trực tiếp trên thiết bị Android thật.</div>
+          <div>Trang 4 / 7</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 5: TRACTION & GTM -->
+      <div class="slide" data-index="4" data-notes="Kế hoạch người dùng đầu tiên bắt đầu từ hai nhóm lớp tại Hà Nội qua lớp trưởng. Phễu chuyển đổi rõ ràng: 100 tiếp cận, 60 người mở và 40 người kích hoạt bằng hành động lưu lịch từ ảnh thật. Mục tiêu retention là 20% D1, 12% D7 và 5% D28.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step">Khung 4</span>
+              <span class="time-badge">0:55</span>
+            </div>
+            <h1 class="slide-title"><span class="hl">Hai nhóm lớp</span> là điểm bắt đầu kiểm chứng.</h1>
+            <p class="slide-desc">Kênh tuyển dụng qua Lớp trưởng & Ban học thuật CLB; mở rộng sang nhóm tiếng Anh.</p>
+          </div>
+          <span style="background: #DBEAFE; color: #1E40AF; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Mục tiêu Pilot M1</span>
+        </div>
+
+        <div class="slide-body">
+          <div class="grid-2">
+            <!-- Funnel -->
+            <div class="deck-card" style="background: #FFFFFF;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Phễu chuyển đổi M1 (Mục tiêu)</div>
+              
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--brand-light); padding: 12px 16px; border-radius: 12px; border: 1px solid #BFDBFE;">
+                  <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--brand);">1. TIẾP CẬN MỚI</div>
+                    <div style="font-size: 14px; font-weight: 700;">2 nhóm lớp tại Hà Nội</div>
+                  </div>
+                  <div style="font-size: 28px; font-weight: 800; color: var(--brand);">100</div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--canvas); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); margin-left: 20px;">
+                  <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-sub);">2. MỞ LẦN ĐẦU (NEW USERS)</div>
+                    <div style="font-size: 14px; font-weight: 700;">Tỷ lệ mở app 60%</div>
+                  </div>
+                  <div style="font-size: 28px; font-weight: 800; color: var(--text-main);">60</div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--emerald-light); padding: 12px 16px; border-radius: 12px; border: 1px solid #A7F3D0; margin-left: 40px;">
+                  <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--emerald);">3. KÍCH HOẠT THÀNH CÔNG</div>
+                    <div style="font-size: 14px; font-weight: 700;">Lưu việc từ ảnh thật vào lịch</div>
+                  </div>
+                  <div style="font-size: 28px; font-weight: 800; color: var(--emerald);">40</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Retention & Expansion -->
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="deck-card">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Mục tiêu Retention theo Cohort D0</div>
+                <div style="display: flex; justify-content: space-around; text-align: center; margin-top: 10px;">
+                  <div>
+                    <div class="stat-num" style="font-size: 32px;">20%</div>
+                    <div class="stat-label">D1</div>
+                    <div class="stat-note">12 sinh viên</div>
+                  </div>
+                  <div>
+                    <div class="stat-num" style="font-size: 32px;">12%</div>
+                    <div class="stat-label">D7</div>
+                    <div class="stat-note">8 sinh viên</div>
+                  </div>
+                  <div>
+                    <div class="stat-num" style="font-size: 32px;">5%</div>
+                    <div class="stat-label">D28</div>
+                    <div class="stat-note">3 sinh viên</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="deck-card" style="background: #FFFFFF;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Mở rộng thị trường kế tiếp</div>
+                <p class="card-text" style="font-size: 13.5px; margin-top: 4px;">
+                  Sau khi chuẩn hóa tại trường thứ 2, thử nghiệm trên <strong>cộng đồng sinh viên dùng tiếng Anh</strong> nhận thông báo qua WhatsApp, Discord hoặc LMS quốc tế (Canvas/Moodle).
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">Theo dõi chặt chẽ từng nhóm lớp; hành vi quay lại đo đạc trên hành động tạo lịch thật sự.</div>
+          <div>Trang 5 / 7</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6: BUSINESS & TECH TRANSPARENCY -->
+      <div class="slide" data-index="5" data-notes="Về kinh doanh: Gói Free 5 lượt AI/tháng và gói Pro 39.000 đồng/tháng cho 50 lượt xử lý. Về kỹ thuật: chúng tôi minh bạch ranh giới hackathon: trước sự kiện có bản prototype PWA, trong ngày 14/11 đã port hoàn toàn sang React Native Expo Android độc lập tại commit 4df37e0.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step">Khung 5</span>
+              <span class="time-badge">0:45</span>
+            </div>
+            <h1 class="slide-title">Mô hình kinh doanh & <span class="hl">Phần làm trong ngày</span>.</h1>
+            <p class="slide-desc">Gói cước phù hợp học sinh sinh viên; minh bạch ranh giới kỹ thuật sprint.</p>
+          </div>
+        </div>
+
+        <div class="slide-body">
+          <div class="grid-2">
+            <!-- Pricing -->
+            <div class="deck-card" style="background: #FFFFFF;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cấu trúc gói cước thử nghiệm</div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
+                <div style="background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 18px;">
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">GÓI FREE</div>
+                  <div style="font-size: 26px; font-weight: 800; color: var(--text-main); margin: 4px 0;">0đ</div>
+                  <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">5 lượt AI/tháng · Xếp lịch & xem lịch không giới hạn</div>
+                </div>
+
+                <div style="background: #FFFFFF; border: 2px solid var(--brand); border-radius: 14px; padding: 18px; position: relative;">
+                  <span style="position: absolute; top: -10px; right: 12px; background: var(--brand); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;">ĐỀ XUẤT</span>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--brand);">GÓI PRO</div>
+                  <div style="font-size: 26px; font-weight: 800; color: var(--brand); margin: 4px 0;">39.000đ<span style="font-size: 12px; font-weight: 500; color: var(--text-muted);">/tháng</span></div>
+                  <div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">50 lượt AI/tháng · Giá đối chứng 29.000đ · Mùa thi 59k/90 ngày</div>
+                </div>
+              </div>
+
+              <div style="margin-top: 14px; font-size: 13px; color: var(--text-sub); background: var(--brand-light); padding: 10px 14px; border-radius: 8px;">
+                <strong>Mục tiêu M3:</strong> 10 thuê bao Pro đầu tiên (4.9% Paid Share trên 204 MAU) → Doanh thu 390.000đ/tháng.
+              </div>
+            </div>
+
+            <!-- Tech Built Today -->
+            <div class="deck-card">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Minh bạch mã nguồn (Commit 4df37e0)</div>
+              
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px; font-size: 13px;">
+                <div style="border-left: 3px solid #94A3B8; padding-left: 12px;">
+                  <div style="font-weight: 700; color: var(--text-sub);">Có sẵn trước hackathon:</div>
+                  <div style="color: var(--text-muted); font-size: 12px;">Prototype PWA, prompt Gemini, logic xếp lịch sơ khởi.</div>
+                </div>
+
+                <div style="border-left: 3px solid var(--emerald); padding-left: 12px; background: var(--emerald-light); padding: 10px 12px; border-radius: 0 10px 10px 0;">
+                  <div style="font-weight: 700; color: var(--emerald);">Hoàn thành trong ngày 14/11:</div>
+                  <div style="color: var(--text-main); font-size: 12.5px; margin-top: 4px; line-height: 1.5;">
+                    • Port toàn diện sang <strong>React Native / Expo APK</strong> độc lập.<br>
+                    • Nén ảnh trực tiếp trên Android Canvas, bảo mật KeyStore.<br>
+                    • Lưu trữ offline AsyncStorage và chia sẻ lịch .ics qua Android.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">“Mỗi bức ảnh thông báo đều có thể trở thành một giờ làm việc cụ thể trong lịch.”</div>
+          <div>Trang 6 / 7</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 7: APPENDIX P&L & Q&A -->
+      <div class="slide" data-index="6" data-notes="Phụ lục tài chính P&L: Dự phóng đến tháng 6 với 895 MAU và 72 thuê bao Pro. Điểm hòa vốn là 89 thuê bao. Khi chạy quảng cáo, mục tiêu ROAS D28 phải đạt từ 150% trở lên.">
+        <div class="slide-header">
+          <div>
+            <div class="slide-eyebrow">
+              <span class="pill-step">Phụ lục Q&A</span>
+              <span class="time-badge">Tài chính</span>
+            </div>
+            <h1 class="slide-title">Kế hoạch tài chính & <span class="hl">Điểm hòa vốn</span></h1>
+            <p class="slide-desc">Dự phóng P&L 6 tháng · Phí thanh toán 15% · Gemini Vision 90đ/lượt.</p>
+          </div>
+        </div>
+
+        <div class="slide-body">
+          <div class="grid-2">
+            <div class="deck-card" style="background: #FFFFFF;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border); text-align: left; color: var(--text-muted); font-size: 11px;">
+                    <th style="padding: 8px 4px;">CHỈ SỐ TÀI CHÍNH</th>
+                    <th style="padding: 8px 4px; text-align: right;">M1</th>
+                    <th style="padding: 8px 4px; text-align: right;">M3</th>
+                    <th style="padding: 8px 4px; text-align: right;">M6</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 8px 4px; font-weight: 600;">Doanh thu Pro gộp</td>
+                    <td style="text-align: right;">0 đ</td>
+                    <td style="text-align: right;">390k đ</td>
+                    <td style="text-align: right; font-weight: 700; color: var(--brand);">2.808k đ</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 8px 4px;">Phí kênh (15%) + AI (90đ)</td>
+                    <td style="text-align: right;">−14k đ</td>
+                    <td style="text-align: right;">−155k đ</td>
+                    <td style="text-align: right;">−834k đ</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 8px 4px;">Chi phí vận hành</td>
+                    <td style="text-align: right;">−1.000k đ</td>
+                    <td style="text-align: right;">−1.500k đ</td>
+                    <td style="text-align: right;">−2.500k đ</td>
+                  </tr>
+                  <tr style="background: var(--canvas);">
+                    <td style="padding: 8px 4px; font-weight: 700;">Lãi / Lỗ tháng</td>
+                    <td style="text-align: right; color: var(--coral);">−1.014k đ</td>
+                    <td style="text-align: right; color: var(--coral);">−1.255k đ</td>
+                    <td style="text-align: right; font-weight: 700; color: var(--coral);">−526k đ</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">
+                Lỗ lũy kế 6 tháng: <strong>−6,09 triệu đồng</strong> (chưa tính lương founder và thuế).
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="deck-card highlight" style="background: #FFFFFF;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase;">Điểm hòa vốn (Break-even)</div>
+                <div class="stat-num" style="font-size: 36px; margin: 4px 0;">89 thuê bao</div>
+                <p class="card-text" style="font-size: 13px;">
+                  Ở quy mô 895 MAU tại M6, PlanSnap cần khoảng <strong>89 người trả phí Pro</strong> (~9.9% MAU) để hoàn toàn tự hòa vốn vận hành hàng tháng.
+                </p>
+              </div>
+
+              <div class="deck-card">
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Nguyên tắc quảng cáo & ROAS</div>
+                <p class="card-text" style="font-size: 12.5px;">
+                  Chỉ chi tiền ads khi 2 cohort liên tiếp đạt retention. Mục tiêu <strong>ROAS D28 ≥ 150%</strong> (Ví dụ minh họa: 300k spend → 12 khách → 468k doanh thu → ROAS 156%).
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-highlight">Kế hoạch tài chính minh bạch, kiểm soát chi phí API ở mức 90đ/lượt; hòa vốn khả thi ở 89 thuê bao.</div>
+          <div>Trang 7 / 7</div>
+        </div>
+      </div>
+
     </div>
-    <button id="btn-next" class="btn-nav">Slide tiếp ➔</button>
-  </footer>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-bar">
+    <button class="btn-nav" id="btnPrev" disabled onclick="goSlide(curr - 1)">
+      ← Trước đó
+    </button>
+
+    <div class="dots-strip" id="dotsStrip"></div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span style="font-size: 13px; color: #94A3B8; font-family: var(--mono);" id="slideNumber">1 / 7</span>
+      <button class="btn-nav" id="btnNext" onclick="goSlide(curr + 1)">
+        Tiếp theo →
+      </button>
+    </div>
+  </div>
+
+  <!-- Speaker Notes Drawer -->
+  <div class="speaker-drawer" id="notesDrawer">
+    <div class="drawer-header">
+      <span id="notesTitle">Ghi chú diễn giả · Trang 1</span>
+      <button style="background:none; border:none; color:#94A3B8; cursor:pointer;" onclick="toggleNotes()">✕</button>
+    </div>
+    <div class="drawer-body" id="notesText"></div>
+  </div>
 
   <script>
     const slides = document.querySelectorAll('.slide');
-    const currentSlideEl = document.getElementById('current-slide');
-    const totalSlidesEl = document.getElementById('total-slides');
-    const btnPrev = document.getElementById('btn-prev');
-    const btnNext = document.getElementById('btn-next');
-    let currentIndex = 0;
+    const dotsStrip = document.getElementById('dotsStrip');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const slideNumber = document.getElementById('slideNumber');
+    const notesDrawer = document.getElementById('notesDrawer');
+    const notesTitle = document.getElementById('notesTitle');
+    const notesText = document.getElementById('notesText');
+    const btnNotes = document.getElementById('btnNotes');
 
-    totalSlidesEl.innerText = slides.length;
+    let curr = 0;
+    const total = slides.length;
 
-    function showSlide(index) {
-      if (index < 0) index = 0;
-      if (index >= slides.length) index = slides.length - 1;
+    // Create Dots
+    slides.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = `dot-item ${i === 0 ? 'active' : ''}`;
+      d.onclick = () => goSlide(i);
+      dotsStrip.appendChild(d);
+    });
 
-      slides.forEach((s, idx) => {
-        s.classList.toggle('active', idx === index);
-      });
+    function goSlide(idx) {
+      if (idx >= 0 && idx < total) {
+        curr = idx;
+        slides.forEach((s, i) => s.classList.toggle('active', i === curr));
+        dotsStrip.querySelectorAll('.dot-item').forEach((d, i) => d.classList.toggle('active', i === curr));
+        
+        btnPrev.disabled = curr === 0;
+        btnNext.disabled = curr === total - 1;
+        slideNumber.textContent = `${curr + 1} / ${total}`;
 
-      currentIndex = index;
-      currentSlideEl.innerText = currentIndex + 1;
+        const activeSlide = slides[curr];
+        const note = activeSlide.getAttribute('data-notes') || 'Không có ghi chú thêm.';
+        notesTitle.textContent = `Ghi chú diễn giả · Trang ${curr + 1}`;
+        notesText.innerHTML = `<strong>Lời thoại đề xuất:</strong><br>${note}`;
+      }
     }
 
-    btnPrev.addEventListener('click', () => showSlide(currentIndex - 1));
-    btnNext.addEventListener('click', () => showSlide(currentIndex + 1));
+    function toggleNotes() {
+      notesDrawer.classList.toggle('open');
+      btnNotes.classList.toggle('active', notesDrawer.classList.contains('open'));
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-        showSlide(currentIndex + 1);
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        showSlide(currentIndex - 1);
-      }
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') goSlide(curr + 1);
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') goSlide(curr - 1);
+      else if (e.key === 's' || e.key === 'S') toggleNotes();
+      else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+      else if (e.key >= '1' && e.key <= '7') goSlide(parseInt(e.key) - 1);
     });
+
+    // Init
+    goSlide(0);
   </script>
 </body>
 </html>
-

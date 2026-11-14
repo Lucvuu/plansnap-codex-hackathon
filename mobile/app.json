@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#f8fafc",
+    "backgroundColor": "#f5f5f7",
     "ios": {
       "bundleIdentifier": "com.technocomplex.plansnap",
       "supportsTablet": false
@@ -48,18 +48,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#f8fafc"
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "buildArchs": [
-              "arm64-v8a",
-              "armeabi-v7a"
-            ]
-          }
+          "backgroundColor": "#f5f5f7"
         }
       ]
     ],
@@ -71,12 +60,6 @@
         "projectId": "ec4fffd1-6576-4657-918c-cbaadfbe4ee5"
       }
     },
-    "owner": "elysszxjes-team",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/ec4fffd1-6576-4657-918c-cbaadfbe4ee5"
-    }
+    "owner": "elysszxjes-team"
   }
 }

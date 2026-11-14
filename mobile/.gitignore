@@ -39,6 +39,3 @@ yarn-error.*
 # generated native folders
 /ios
 /android
-
-# Built-in Gemini key lives in .env (ignored by the root .gitignore); keep the template tracked.
-!.env.example

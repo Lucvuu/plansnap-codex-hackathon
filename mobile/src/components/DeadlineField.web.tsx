@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 
 import { toDatetimeLocalValue } from '@/lib/format';
-import { colors, fonts, radii } from '@/theme';
+import { colors } from '@/theme';
 
 interface Props {
   value: Date;
@@ -12,23 +12,21 @@ interface Props {
 export function DeadlineField({ value, onChange }: Props) {
   return createElement('input', {
     type: 'datetime-local',
-    'aria-label': 'Ngày giờ', // used for both a deadline and a fixed start
+    'aria-label': 'Hạn chót',
     value: toDatetimeLocalValue(value),
     onChange: (e: { target: { value: string } }) => {
       const next = new Date(e.target.value);
       if (!isNaN(next.getTime())) onChange(next);
     },
     style: {
-      height: 44,
+      height: 40,
       background: colors.bg,
       border: `1px solid ${colors.border}`,
-      borderRadius: radii.md,
+      borderRadius: 10,
       padding: '0 12px',
-      fontSize: 14,
+      fontSize: 13.5,
       color: colors.text,
-      fontFamily: `${fonts.regular}, sans-serif`,
-      accentColor: colors.blue,
-      outlineColor: colors.blue,
+      fontFamily: 'BeVietnamPro_400Regular, sans-serif',
       boxSizing: 'border-box',
       width: '100%',
     },

@@ -6,12 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 import { buildHandwrittenDemoTask, buildStudentDemoTasks } from '../demo-tasks.ts';
 import { scheduleTasks } from '../scheduler.ts';
-import { DEFAULT_FREE_SLOTS, getEnabledSlotDefs, migrateLegacySlots } from '../slots.ts';
-import type { SlotKey, SlotMap, Task } from '../types.ts';
-
-// v2.2 toggle keys, in the order the PWA lists them.
-const LEGACY_KEYS: SlotKey[] = ['weekday-eve', 'sat-morn', 'sat-aft', 'sun-morn', 'sun-aft'];
-const ALL_ON = Object.fromEntries(LEGACY_KEYS.map((key) => [key, true])) as SlotMap;
+import { DEFAULT_SLOTS, getEnabledSlotDefs, SLOT_OPTIONS } from '../slots.ts';
+import type { SlotMap, Task } from '../types.ts';
 
 // Load the original PWA scheduler (app/js/scheduler.js) in this realm for parity checks.
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -40,12 +36,12 @@ function mulberry32(seed: number) {
   };
 }
 
-test('migrated v2.2 toggles expand exactly like the PWA for every combination', () => {
+test('slot expansion matches the PWA for every toggle combination', () => {
   for (let mask = 0; mask < 32; mask++) {
-    const slots = Object.fromEntries(LEGACY_KEYS.map((key, i) => [key, Boolean(mask & (1 << i))])) as SlotMap;
+    const slots = Object.fromEntries(SLOT_OPTIONS.map((o, i) => [o.key, Boolean(mask & (1 << i))])) as SlotMap;
     const sortKey = (d: { day: number; start: string }) => `${d.day}-${d.start}`;
     assert.deepEqual(
-      getEnabledSlotDefs(migrateLegacySlots(slots)).map(sortKey).sort(),
+      getEnabledSlotDefs(slots).map(sortKey).sort(),
       pwaSlotDefs(slots).map(sortKey).sort(),
     );
   }
@@ -66,15 +62,16 @@ test('scheduleTasks is identical to the PWA scheduler on 500 random scenarios', 
         needs_confirmation: rand() < 0.15,
         estimated_minutes: rand() < 0.1 ? undefined : durations[Math.floor(rand() * durations.length)],
         completed: rand() < 0.1,
-        fixed_start_iso: rand() < 0.15 ? new Date(ref.getTime() + rand() * 10 * 86400000).toISOString() : undefined,
       };
     });
-    const slots = Object.fromEntries(LEGACY_KEYS.map((key) => [key, rand() < 0.75])) as SlotMap;
+    const slots = Object.fromEntries(SLOT_OPTIONS.map((o) => [o.key, rand() < 0.75])) as SlotMap;
 
-    const ours = scheduleTasks(tasks, getEnabledSlotDefs(migrateLegacySlots(slots)), ref);
+    const ours = scheduleTasks(tasks, getEnabledSlotDefs(slots), ref);
     const theirs = JSON.parse(JSON.stringify(pwa.schedule(tasks, pwaSlotDefs(slots), ref)));
 
-    assert.deepEqual(ours, theirs, `scenario ${scenario} diverged`);
+    // Identical placement; only the "Phiên x/y" numbering intentionally differs (see below).
+    const strip = (evs: object[]) => evs.map(({ title: _t, totalSessions: _n, ...rest }: any) => rest);
+    assert.deepEqual(strip(ours), strip(theirs), `scenario ${scenario} diverged`);
 
     for (const ev of ours) {
       assert.ok(ev.sessionIndex <= ev.totalSessions, `scenario ${scenario}: Phiên ${ev.sessionIndex}/${ev.totalSessions}`);
@@ -84,63 +81,24 @@ test('scheduleTasks is identical to the PWA scheduler on 500 random scenarios', 
   }
 });
 
-test('fragmented windows never produce "Phiên 3/2" and match PWA balanced split', () => {
-  // Saturday 14/11/2026 14:08
+test('fragmented windows never produce "Phiên 3/2" (PWA bug)', () => {
+  // Saturday 14/11/2026 14:08 — reproduces the split seen in the demo: 90 + 60 + 30 minutes.
   const now = new Date(2026, 10, 14, 14, 8);
   const tasks: Task[] = [
     { id: 'quiz', title: 'Quiz', deadline_iso: new Date(2026, 10, 15, 23, 59).toISOString(), estimated_minutes: 45 },
     { id: 'slide', title: 'Slide', deadline_iso: new Date(2026, 10, 17, 8, 0).toISOString(), estimated_minutes: 120 },
     { id: 'essay', title: 'Essay', deadline_iso: new Date(2026, 10, 20, 17, 0).toISOString(), estimated_minutes: 180 },
   ];
-  const essay = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_FREE_SLOTS), now).filter((e) => e.taskId === 'essay');
-  const pwaEssay = pwa.schedule(tasks, pwaSlotDefs(ALL_ON), now).filter((e: any) => e.taskId === 'essay');
-  assert.deepEqual(pwaEssay.map((e: any) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2']);
-  assert.deepEqual(essay.map((e) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2']);
-});
-
-test('fixed_start_iso pins fixed-time schedule even without EDF free slots', () => {
-  const fixedStart = new Date(2026, 10, 16, 14, 0, 0);
-  const events = scheduleTasks(
-    [
-      {
-        id: 'meet-1',
-        title: 'Họp nhóm cố định',
-        deadline_iso: new Date(2026, 10, 16, 15, 30, 0).toISOString(),
-        fixed_start_iso: fixedStart.toISOString(),
-        estimated_minutes: 90,
-      },
-    ],
-    [],
-    new Date(2026, 10, 14, 10, 0, 0),
-  );
-  assert.equal(events.length, 1);
-  assert.equal(events[0].isFixed, true);
-  assert.equal(events[0].durationMinutes, 90);
-  assert.equal(new Date(events[0].start).getTime(), fixedStart.getTime());
-});
-
-test('EDF sessions never overlap a fixed-time event (FR-3.3)', () => {
-  // Monday 16/11/2026 08:00; the only free window that week night is 19:30–22:30.
-  const now = new Date(2026, 10, 16, 8, 0);
-  const tasks: Task[] = [
-    { id: 'meet', title: 'Họp nhóm', deadline_iso: null, fixed_start_iso: new Date(2026, 10, 16, 20, 0).toISOString(), estimated_minutes: 60 },
-    { id: 'essay', title: 'Essay', deadline_iso: new Date(2026, 10, 20, 17, 0).toISOString(), estimated_minutes: 180 },
-  ];
-  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_FREE_SLOTS), now);
-  const meet = events.find((e) => e.taskId === 'meet')!;
-  const sessions = events.filter((e) => e.taskId === 'essay');
-  assert.equal(sessions.reduce((sum, e) => sum + e.durationMinutes, 0), 180);
-  for (const s of sessions) {
-    assert.ok(s.end <= meet.start || s.start >= meet.end, `${s.start}–${s.end} overlaps the fixed meeting`);
-  }
-  // 21:00–22:30 after the meeting is still usable that evening.
-  assert.equal(new Date(sessions[0].start).getTime(), new Date(2026, 10, 16, 21, 0).getTime());
+  const essay = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now).filter((e) => e.taskId === 'essay');
+  const pwaEssay = pwa.schedule(tasks, pwaSlotDefs(DEFAULT_SLOTS), now).filter((e: any) => e.taskId === 'essay');
+  assert.deepEqual(pwaEssay.map((e: any) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2', '3/2']);
+  assert.deepEqual(essay.map((e) => `${e.sessionIndex}/${e.totalSessions}`), ['1/3', '2/3', '3/3']);
 });
 
 test('demo pack schedules the two clear tasks and holds back the ambiguous one', () => {
   const now = new Date(2026, 10, 14, 13, 0); // Saturday 14/11/2026 13:00
   const tasks = buildStudentDemoTasks(now);
-  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_FREE_SLOTS), now);
+  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now);
   const scheduledTaskIds = new Set(events.map((e) => e.taskId));
   assert.equal(scheduledTaskIds.size, 2);
   assert.ok(!scheduledTaskIds.has(tasks[0].id), 'needs_confirmation task must not be scheduled');

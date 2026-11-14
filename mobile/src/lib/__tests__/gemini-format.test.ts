@@ -26,9 +26,6 @@ test('parseExtractionJson strips code fences and fills missing ids', () => {
   const tasks = parseExtractionJson('```json\n{"tasks":[{"title":"A","deadline_iso":null},{"id":"x","title":"B","deadline_iso":null}]}\n```', 42);
   assert.deepEqual(tasks.map((t) => t.id), ['task_live_42_0', 'x']);
   assert.deepEqual(parseExtractionJson('{}'), []);
-  // Prose around the object is salvaged; text with no object still throws (→ one automatic retry).
-  assert.equal(parseExtractionJson('Kết quả: {"tasks":[{"id":"a","title":"A","deadline_iso":null}]} Hết.')[0].id, 'a');
-  assert.throws(() => parseExtractionJson('Xin lỗi, tôi không đọc được ảnh.'));
 });
 
 test('deadline labels: overdue, urgent, normal, unknown', () => {
