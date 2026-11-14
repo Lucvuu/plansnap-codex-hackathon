@@ -5,13 +5,19 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { defaultNewDeadline } from '@/lib/format';
 import type { Task } from '@/lib/types';
 import type { TaskInput } from '@/state/AppStore';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, radii, shadow, type } from '@/theme';
 
 import { BottomSheet } from './BottomSheet';
 import { DeadlineField } from './DeadlineField';
+import { Icon } from './Icon';
 import { Button } from './ui';
 
 const DURATIONS = [30, 45, 60, 90, 120, 180, 240];
+
+const MODES = [
+  { value: 'edf', label: 'Tự xếp giờ rảnh' },
+  { value: 'fixed', label: 'Giờ cố định' },
+] as const;
 
 function durationLabel(min: number) {
   // Hours only for clean half-hour multiples (90 → "1.5 giờ"); otherwise minutes (75 → "75 phút").
@@ -27,9 +33,11 @@ interface Props {
   formKey: number;
   onClose: () => void;
   onSubmit: (input: TaskInput) => void;
+  /** Adds a delete action when editing an existing task. Omit to hide it (the caller owns the removal). */
+  onDelete?: (id: string) => void;
 }
 
-export function TaskSheet({ visible, task, defaultMode = 'edf', formKey, onClose, onSubmit }: Props) {
+export function TaskSheet({ visible, task, defaultMode = 'edf', formKey, onClose, onSubmit, onDelete }: Props) {
   const isFixedDefault = task ? Boolean(task.fixed_start_iso) : defaultMode === 'fixed';
   const heading = task
     ? isFixedDefault
@@ -41,7 +49,14 @@ export function TaskSheet({ visible, task, defaultMode = 'edf', formKey, onClose
 
   return (
     <BottomSheet visible={visible} title={heading} onClose={onClose}>
-      <TaskForm key={formKey} task={task} defaultMode={defaultMode} onClose={onClose} onSubmit={onSubmit} />
+      <TaskForm
+        key={formKey}
+        task={task}
+        defaultMode={defaultMode}
+        onClose={onClose}
+        onSubmit={onSubmit}
+        onDelete={onDelete}
+      />
     </BottomSheet>
   );
 }
@@ -80,7 +95,8 @@ function TaskForm({
   defaultMode = 'edf',
   onClose,
   onSubmit,
-}: Pick<Props, 'task' | 'defaultMode' | 'onClose' | 'onSubmit'>) {
+  onDelete,
+}: Pick<Props, 'task' | 'defaultMode' | 'onClose' | 'onSubmit' | 'onDelete'>) {
   const [mode, setMode] = useState<'edf' | 'fixed'>(() =>
     task ? (task.fixed_start_iso ? 'fixed' : 'edf') : defaultMode,
   );
@@ -88,10 +104,12 @@ function TaskForm({
   const [deadline, setDeadline] = useState(() => initialDeadline(task));
   const [fixedStart, setFixedStart] = useState(() => initialFixedStart(task));
   const [minutes, setMinutes] = useState(() => task?.estimated_minutes || 60);
+  const [titleFocused, setTitleFocused] = useState(false);
 
   const durationOptions = DURATIONS.includes(minutes) ? DURATIONS : [...DURATIONS, minutes].sort((a, b) => a - b);
   const canSave =
     title.trim().length > 0 && (!task || isTaskChanged(task, { mode, title, deadline, fixedStart, minutes }));
+  const deleteLabel = task?.fixed_start_iso ? 'Xóa lịch cố định' : 'Xóa đầu việc';
 
   const submit = () => {
     if (!canSave) return;
@@ -117,32 +135,37 @@ function TaskForm({
   };
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.body}>
       <View style={styles.segmentTrack} role="tablist">
-        <Pressable
-          role="tab"
-          aria-selected={mode === 'edf'}
-          onPress={() => setMode('edf')}
-          style={[styles.segmentBtn, mode === 'edf' && styles.segmentBtnActive]}>
-          <Text style={[styles.segmentText, mode === 'edf' && styles.segmentTextActive]}>Tự xếp giờ rảnh</Text>
-        </Pressable>
-        <Pressable
-          role="tab"
-          aria-selected={mode === 'fixed'}
-          onPress={() => setMode('fixed')}
-          style={[styles.segmentBtn, mode === 'fixed' && styles.segmentBtnActive]}>
-          <Text style={[styles.segmentText, mode === 'fixed' && styles.segmentTextActive]}>Giờ cố định</Text>
-        </Pressable>
+        {MODES.map((m) => {
+          const active = mode === m.value;
+          return (
+            <Pressable
+              key={m.value}
+              role="tab"
+              aria-selected={active}
+              accessibilityLabel={m.label}
+              onPress={() => setMode(m.value)}
+              style={[styles.segmentBtn, active && styles.segmentBtnActive]}>
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{m.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.group}>
-        <Text style={styles.label}>{mode === 'fixed' ? 'Tên lịch hẹn / Đầu việc' : 'Tên đầu việc'}</Text>
+        <Text style={type.label}>{mode === 'fixed' ? 'Tên lịch hẹn / Đầu việc' : 'Tên đầu việc'}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
           placeholder={mode === 'fixed' ? 'Ví dụ: Họp nhóm đồ án' : 'Ví dụ: Nộp báo cáo Kinh tế'}
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
+          placeholderTextColor={colors.textFaint}
+          style={[styles.input, titleFocused && styles.inputFocused]}
+          onFocus={() => setTitleFocused(true)}
+          onBlur={() => setTitleFocused(false)}
           autoFocus={!task}
           returnKeyType="done"
           onSubmitEditing={submit}
@@ -152,18 +175,18 @@ function TaskForm({
 
       {mode === 'fixed' ? (
         <View style={styles.group}>
-          <Text style={styles.label}>Thời gian bắt đầu</Text>
+          <Text style={type.label}>Thời gian bắt đầu</Text>
           <DeadlineField value={fixedStart} onChange={setFixedStart} />
         </View>
       ) : (
         <View style={styles.group}>
-          <Text style={styles.label}>Hạn chót</Text>
+          <Text style={type.label}>Hạn chót</Text>
           <DeadlineField value={deadline} onChange={setDeadline} />
         </View>
       )}
 
       <View style={styles.group}>
-        <Text style={styles.label}>Thời lượng dự kiến</Text>
+        <Text style={type.label}>Thời lượng dự kiến</Text>
         <View style={styles.pills} role="radiogroup">
           {durationOptions.map((m) => {
             const active = m === minutes;
@@ -172,6 +195,7 @@ function TaskForm({
                 key={m}
                 role="radio"
                 aria-checked={active}
+                accessibilityLabel={durationLabel(m)}
                 onPress={() => setMinutes(m)}
                 style={[styles.pill, active && styles.pillActive]}>
                 <Text style={[styles.pillText, active && styles.pillTextActive]}>{durationLabel(m)}</Text>
@@ -182,57 +206,80 @@ function TaskForm({
       </View>
 
       <View style={styles.btnRow}>
-        <Button label="Hủy" variant="outline" onPress={onClose} />
+        <Button label="Hủy" variant="secondary" onPress={onClose} />
         <Button label="Lưu" onPress={submit} disabled={!canSave} />
       </View>
+
+      {task && onDelete ? (
+        <Pressable
+          role="button"
+          accessibilityLabel={deleteLabel}
+          onPress={() => {
+            onDelete(task.id);
+            onClose();
+          }}
+          style={({ pressed }) => [styles.deleteBtn, pressed && { backgroundColor: colors.redSoft }]}>
+          <Icon name="trash" size={15} color={colors.red} />
+          <Text style={styles.deleteText}>{deleteLabel}</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { gap: 14 },
+  body: { gap: 16 },
   group: { gap: 6 },
-  label: { fontSize: 12, fontFamily: fonts.semibold, color: colors.textSecondary },
   input: {
-    height: 40,
+    height: 44,
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radii.md,
     paddingHorizontal: 12,
-    fontSize: 13.5,
+    fontSize: 14,
     color: colors.text,
     fontFamily: fonts.regular,
   },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  inputFocused: { borderColor: colors.blue, backgroundColor: colors.surface },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pill: {
-    paddingVertical: 7,
+    minHeight: 36,
+    justifyContent: 'center',
     paddingHorizontal: 12,
-    borderRadius: 999,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
   },
   pillActive: { backgroundColor: colors.blue, borderColor: colors.blue },
-  pillText: { fontSize: 12.5, fontFamily: fonts.semibold, color: colors.textSecondary },
-  pillTextActive: { color: '#fff' },
+  pillText: { fontSize: 12.5, fontFamily: fonts.semibold, color: colors.textBody },
+  pillTextActive: { color: colors.surface },
   segmentTrack: {
     flexDirection: 'row',
     backgroundColor: colors.subtle,
-    borderRadius: 10,
+    borderRadius: radii.md + 2,
     padding: 3,
     gap: 4,
   },
   segmentBtn: {
     flex: 1,
+    minHeight: 36,
     alignItems: 'center',
-    paddingVertical: 7,
-    borderRadius: 8,
+    justifyContent: 'center',
+    borderRadius: radii.md,
   },
-  segmentBtnActive: {
-    backgroundColor: colors.surface,
-  },
-  segmentText: { fontSize: 12.5, fontFamily: fonts.semibold, color: colors.textSecondary },
-  segmentTextActive: { color: colors.text },
+  segmentBtnActive: { backgroundColor: colors.surface, ...shadow(1) },
+  segmentText: { fontSize: 12.5, fontFamily: fonts.semibold, color: colors.textMuted },
+  segmentTextActive: { fontFamily: fonts.bold, color: colors.blueHover },
   btnRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  deleteBtn: {
+    height: 44,
+    borderRadius: radii.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  deleteText: { fontSize: 13, fontFamily: fonts.semibold, color: colors.red },
 });

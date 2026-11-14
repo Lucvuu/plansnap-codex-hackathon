@@ -3,7 +3,9 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatDateTimeLabel } from '@/lib/format';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, radii, tabular } from '@/theme';
+
+import { Icon } from './Icon';
 
 interface Props {
   value: Date;
@@ -44,22 +46,32 @@ export function DeadlineField({ value, onChange }: Props) {
   };
 
   return (
-    <Pressable role="button" accessibilityLabel="Chọn hạn chót" onPress={openAndroid} style={styles.field}>
+    <Pressable
+      role="button"
+      // Used for both a deadline and a fixed start, so the label names the value rather than the field.
+      accessibilityLabel={`Chọn ngày giờ, đang chọn ${formatDateTimeLabel(value)}`}
+      onPress={openAndroid}
+      style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}>
+      <Icon name="calendar" size={16} color={colors.textMuted} />
       <Text style={styles.fieldText}>{formatDateTimeLabel(value)}</Text>
+      <Icon name="chevron-down" size={16} color={colors.textFaint} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  iosRow: { alignItems: 'flex-start' },
+  iosRow: { alignItems: 'flex-start', minHeight: 44, justifyContent: 'center' },
   field: {
-    height: 40,
+    height: 44,
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radii.md,
     paddingHorizontal: 12,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  fieldText: { fontSize: 13.5, color: colors.text, fontFamily: fonts.regular },
+  fieldPressed: { borderColor: colors.blue, backgroundColor: colors.surface },
+  fieldText: { flex: 1, fontSize: 14, color: colors.text, fontFamily: fonts.regular, ...tabular },
 });

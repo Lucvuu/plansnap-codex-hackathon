@@ -2,7 +2,7 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, tabular } from '@/theme';
+import { colors, fonts, radii, tabular } from '@/theme';
 
 interface Props {
   value: string; // HH:mm
@@ -46,7 +46,11 @@ export function TimeField({ value, onChange, accessibilityLabel }: Props) {
     });
 
   return (
-    <Pressable role="button" accessibilityLabel={accessibilityLabel} onPress={openAndroid} style={styles.field}>
+    <Pressable
+      role="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={openAndroid}
+      style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}>
       <Text style={[styles.fieldText, tabular]}>{value}</Text>
     </Pressable>
   );
@@ -59,9 +63,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radii.md,
     paddingHorizontal: 12,
     justifyContent: 'center',
   },
-  fieldText: { fontSize: 13.5, color: colors.text, fontFamily: fonts.regular },
+  fieldPressed: { backgroundColor: colors.blueSoft, borderColor: colors.brand400 },
+  fieldText: { fontSize: 14, color: colors.text, fontFamily: fonts.semibold },
 });

@@ -1,7 +1,7 @@
 // Web time-of-day picker: the browser's native time input.
 import { createElement } from 'react';
 
-import { colors } from '@/theme';
+import { colors, fonts, radii } from '@/theme';
 
 interface Props {
   value: string; // HH:mm
@@ -22,12 +22,14 @@ export function TimeField({ value, onChange, accessibilityLabel }: Props) {
       height: 40,
       background: colors.bg,
       border: `1px solid ${colors.border}`,
-      borderRadius: 10,
+      borderRadius: radii.md,
       padding: '0 12px',
-      fontSize: 13.5,
+      fontSize: 14,
       color: colors.text,
-      fontFamily: 'BeVietnamPro_400Regular, sans-serif',
+      fontFamily: `${fonts.semibold}, sans-serif`,
       fontVariantNumeric: 'tabular-nums',
+      accentColor: colors.blue,
+      outlineColor: colors.blue,
       boxSizing: 'border-box',
       width: '100%',
     },

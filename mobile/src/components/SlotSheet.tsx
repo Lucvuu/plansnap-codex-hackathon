@@ -15,7 +15,7 @@ import {
   WEEK_ORDER,
 } from '@/lib/slots';
 import type { FreeSlot } from '@/lib/types';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, radii } from '@/theme';
 
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
@@ -62,7 +62,12 @@ function SlotForm({ slot, onClose, onSave, onDelete }: Omit<Props, 'visible' | '
         <NavBar
           title="Lặp lại"
           left={
-            <Pressable role="button" onPress={() => setPage('main')} hitSlop={10} style={styles.backBtn}>
+            <Pressable
+              role="button"
+              accessibilityLabel="Quay lại"
+              onPress={() => setPage('main')}
+              hitSlop={10}
+              style={styles.backBtn}>
               <Icon name="chevron-left" size={18} color={colors.blue} strokeWidth={2.4} />
               <Text style={styles.navAction}>Quay lại</Text>
             </Pressable>
@@ -77,9 +82,10 @@ function SlotForm({ slot, onClose, onSave, onDelete }: Omit<Props, 'visible' | '
                   key={day}
                   role="checkbox"
                   aria-checked={checked}
+                  accessibilityLabel={everyDayLabel(day)}
                   onPress={() => setDays((prev) => (checked ? prev.filter((d) => d !== day) : [...prev, day]))}
                   style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.rowPressed]}>
-                  <Text style={styles.rowLabel}>{everyDayLabel(day)}</Text>
+                  <Text style={[styles.rowLabel, checked && styles.rowLabelChecked]}>{everyDayLabel(day)}</Text>
                   {checked && <Icon name="check" size={18} color={colors.blue} strokeWidth={2.6} />}
                 </Pressable>
               );
@@ -137,14 +143,15 @@ function SlotForm({ slot, onClose, onSave, onDelete }: Omit<Props, 'visible' | '
         </View>
 
         {slot && (
-          <View style={styles.group}>
+          <View style={[styles.group, styles.groupDanger]}>
             <Pressable
               role="button"
+              accessibilityLabel="Xóa khung giờ"
               onPress={() => {
                 onDelete(slot.id);
                 onClose();
               }}
-              style={({ pressed }) => [styles.row, styles.rowCenter, pressed && styles.rowPressed]}>
+              style={({ pressed }) => [styles.row, styles.rowCenter, pressed && styles.rowPressedDanger]}>
               <Text style={styles.deleteText}>Xóa khung giờ</Text>
             </Pressable>
           </View>
@@ -178,13 +185,19 @@ function NavAction({
   disabled?: boolean;
 }) {
   return (
-    <Pressable role="button" onPress={onPress} disabled={disabled} hitSlop={10} accessibilityState={{ disabled }}>
+    <Pressable
+      role="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={10}
+      accessibilityState={{ disabled }}>
       {({ pressed }) => (
         <Text
           style={[
             styles.navAction,
             bold && { fontFamily: fonts.bold },
-            disabled && { color: colors.borderStrong },
+            disabled && { color: colors.textFaint },
             pressed && { opacity: 0.5 },
           ]}>
           {label}
@@ -197,11 +210,19 @@ function NavAction({
 const styles = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, minHeight: 28 },
   navSide: { flex: 1 },
-  navTitle: { fontSize: 16, fontFamily: fonts.bold, color: colors.text, textAlign: 'center' },
-  navAction: { fontSize: 15, fontFamily: fonts.medium, color: colors.blue },
+  navTitle: { fontSize: 17, fontFamily: fonts.extrabold, letterSpacing: -0.2, color: colors.text, textAlign: 'center' },
+  navAction: { fontSize: 14, fontFamily: fonts.semibold, color: colors.blue },
   backBtn: { flexDirection: 'row', alignItems: 'center', marginLeft: -4 },
   body: { gap: 8, paddingBottom: 8 },
-  group: { backgroundColor: colors.surface, borderRadius: 12, overflow: 'hidden', marginBottom: 12 },
+  group: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  groupDanger: { borderColor: colors.redBorder },
   row: {
     minHeight: 48,
     paddingHorizontal: 16,
@@ -212,13 +233,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rowCenter: { justifyContent: 'center' },
-  rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  rowPressed: { backgroundColor: colors.subtle },
-  rowLabel: { fontSize: 15, fontFamily: fonts.regular, color: colors.text },
+  rowDivider: { borderTopWidth: 1, borderTopColor: colors.subtle },
+  rowPressed: { backgroundColor: colors.blueSoft },
+  rowPressedDanger: { backgroundColor: colors.redSoft },
+  rowLabel: { fontSize: 14, fontFamily: fonts.medium, color: colors.text },
+  rowLabelChecked: { fontFamily: fonts.semibold, color: colors.blueHover },
   rowValueWrap: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
-  rowValue: { fontSize: 15, fontFamily: fonts.regular, color: colors.textMuted, flexShrink: 1 },
+  rowValue: { fontSize: 14, fontFamily: fonts.regular, color: colors.textMuted, flexShrink: 1 },
   timeSlot: { width: 112, alignItems: 'flex-end' },
-  footnote: { fontSize: 12, color: colors.textMuted, fontFamily: fonts.regular, marginTop: -4, marginBottom: 8, paddingHorizontal: 16 },
+  footnote: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
+    marginTop: -4,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+  },
   error: { color: colors.red, fontFamily: fonts.semibold },
-  deleteText: { fontSize: 15, fontFamily: fonts.medium, color: colors.red },
+  deleteText: { fontSize: 14, fontFamily: fonts.bold, color: colors.red },
 });

@@ -27,6 +27,14 @@ That branch's `mobile/` is an **old snapshot** (forked before most of `dev`'s fe
 
 Typecheck, lint and the 27 unit tests pass. **Not yet run on web/device.**
 
+## Status 14/11 ~16:30 — all six units below are implemented
+Typecheck, lint and the 27 unit tests pass; the web export renders all five screens (Snap, Lịch, Đầu việc, Smart Review, Settings) with seeded data. **Not yet run on a device.** Check on the APK:
+- Smart Review: after "Đồng ý tất cả" the app returns to Lịch via `router.dismissTo('/schedule')`; if some items have no usable date it stays on the review screen until they are set.
+- Snap: shimmer card and dashed upload card on Android; the challenge label is shortened to "Thử thách viết tay: chụp & xếp ngay" to fit 360dp.
+- Settings stays a `modal` route (full-screen page on Android); on iOS, toasts raised inside the sheet are probably hidden behind it.
+- Brand: the four corner brackets of the mark are drawn with round caps (the source `logo-mark.svg` had concave ends on the right pair). `LogoMark.tsx` exists but is not placed anywhere — the prototype shows no in-app logo.
+- Icon / splash / `backgroundColor` changes need a new APK; everything else is JS and can go through EAS Update.
+
 ## Remaining work (planned as independent units — disjoint files)
 | Unit | Files | Notes |
 |---|---|---|

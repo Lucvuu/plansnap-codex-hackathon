@@ -2,7 +2,9 @@ import { createContext, useCallback, useContext, useRef, useState, type ReactNod
 import { Animated, Platform, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, fonts } from '@/theme';
+import { colors, fonts, radii, shadow } from '@/theme';
+
+import { Icon, type IconName } from './Icon';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 type ShowToast = (message: string, type?: ToastType) => void;
@@ -12,11 +14,12 @@ const useNativeDriver = Platform.OS !== 'web';
 
 export const useToast = () => useContext(ToastContext);
 
-const DOT: Record<ToastType, string> = {
-  info: '#93c5fd',
-  success: '#34d399',
-  warning: '#fbbf24',
-  error: '#f87171',
+// Icon + tint per type (status is never colour-only); the light tints stay legible on the ink surface.
+const TONE: Record<ToastType, { icon: IconName; color: string }> = {
+  info: { icon: 'info', color: colors.blueBorder },
+  success: { icon: 'check', color: colors.greenBorder },
+  warning: { icon: 'alert-circle', color: colors.amberBorder },
+  error: { icon: 'alert-circle', color: colors.redBorder },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -48,12 +51,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           style={[
             styles.toast,
             {
-              top: insets.top + 62,
+              top: insets.top + 12,
               opacity: anim,
               transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }],
             },
           ]}>
-          <Animated.View style={[styles.dot, { backgroundColor: DOT[toast.type] }]} />
+          <Icon name={TONE[toast.type].icon} size={16} color={TONE[toast.type].color} strokeWidth={2.4} />
           <Text style={styles.text} numberOfLines={2}>
             {toast.message}
           </Text>
@@ -72,16 +75,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.ink,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 999,
+    borderRadius: radii.lg,
     zIndex: 9999,
+    ...shadow(2),
     elevation: 12,
-    shadowColor: colors.ink,
-    shadowOpacity: 0.22,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
   },
-  dot: { width: 6, height: 6, borderRadius: 3 },
-  text: { color: '#fff', fontSize: 12.5, fontFamily: fonts.medium, flexShrink: 1 },
+  text: { color: colors.surface, fontSize: 12.5, fontFamily: fonts.medium, flexShrink: 1 },
 });

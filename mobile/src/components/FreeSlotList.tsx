@@ -1,20 +1,20 @@
 // "Khung giờ rảnh" list, modelled on the iOS Clock → Alarms screen:
-// "Sửa" / "+" in the header, large time + "Tối · Ngày thường" rows with a switch, and an
-// edit mode where ⊖ reveals a red "Xóa" button and switches become chevrons.
+// "Sửa" / "+" in the header, time + "Tối · Ngày thường" rows with a switch, and an
+// edit mode where ⊖ reveals a coral "Xóa" button and switches become chevrons.
 import { useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { slotSubtitle, slotTimeRange, WEEK_ORDER } from '@/lib/slots';
 import type { FreeSlot } from '@/lib/types';
 import { useApp } from '@/state/AppStore';
-import { colors, fonts, shadow, tabular } from '@/theme';
+import { colors, fonts, radii, tabular, type } from '@/theme';
 
 import { Icon } from './Icon';
 import { SlotSheet } from './SlotSheet';
-import { GroupLabel, InlineAlert } from './ui';
+import { IconButton, InlineAlert } from './ui';
 
 // react-native-web colours the "on" thumb with its own prop (default teal) instead of thumbColor.
-const WEB_SWITCH_PROPS = (Platform.OS === 'web' ? { activeThumbColor: '#fff' } : {}) as object;
+const WEB_SWITCH_PROPS = (Platform.OS === 'web' ? { activeThumbColor: colors.surface } : {}) as object;
 
 const animate = () => LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
@@ -52,19 +52,16 @@ export function FreeSlotList() {
   return (
     <>
       <View style={styles.header}>
-        <View style={styles.headerLabel}>
-          <GroupLabel>Khung giờ rảnh</GroupLabel>
-        </View>
-        <Pressable
-          role="button"
-          accessibilityLabel="Thêm khung giờ rảnh"
-          onPress={() => openSheet(null)}
-          hitSlop={10}
-          style={({ pressed }) => [styles.plusBtn, pressed && { opacity: 0.5 }]}>
-          <Icon name="plus" size={17} color={colors.blue} strokeWidth={2.4} />
-        </Pressable>
+        <Text style={[type.label, styles.headerLabel]} role="heading">
+          Khung giờ rảnh
+        </Text>
         {slots.length > 0 && (
-          <Pressable role="button" onPress={toggleEditMode} hitSlop={10} style={styles.editBtn}>
+          <Pressable
+            role="button"
+            accessibilityLabel={editing ? 'Xong chỉnh sửa khung giờ' : 'Sửa danh sách khung giờ'}
+            onPress={toggleEditMode}
+            hitSlop={10}
+            style={styles.editBtn}>
             {({ pressed }) => (
               <Text style={[styles.headerText, editing && { fontFamily: fonts.bold }, pressed && { opacity: 0.5 }]}>
                 {editing ? 'Xong' : 'Sửa'}
@@ -72,10 +69,15 @@ export function FreeSlotList() {
             )}
           </Pressable>
         )}
+        <IconButton icon="plus" label="Thêm khung giờ rảnh" onPress={() => openSheet(null)} />
       </View>
 
       {sorted.length === 0 ? (
-        <Pressable onPress={() => openSheet(null)} style={styles.empty} role="button">
+        <Pressable
+          role="button"
+          accessibilityLabel="Thêm khung giờ rảnh"
+          onPress={() => openSheet(null)}
+          style={({ pressed }) => [styles.empty, pressed && styles.emptyPressed]}>
           <Text style={styles.emptyText}>Chưa có khung giờ rảnh nào. Chạm + để thêm.</Text>
         </Pressable>
       ) : (
@@ -119,7 +121,7 @@ export function FreeSlotList() {
                     value={slot.enabled}
                     onValueChange={() => toggleSlot(slot.id)}
                     trackColor={{ true: colors.blue, false: colors.borderStrong }}
-                    thumbColor="#fff"
+                    thumbColor={colors.surface}
                     ios_backgroundColor={colors.borderStrong}
                     accessibilityLabel={`Bật khung giờ ${slotTimeRange(slot)}`}
                     {...WEB_SWITCH_PROPS}
@@ -127,6 +129,7 @@ export function FreeSlotList() {
                 ) : armed ? (
                   <Pressable
                     role="button"
+                    accessibilityLabel={`Xác nhận xóa ${slotTimeRange(slot)}`}
                     onPress={() => {
                       animate();
                       setArmedDelete(null);
@@ -165,14 +168,19 @@ export function FreeSlotList() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingRight: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerLabel: { flex: 1 },
   headerText: { fontSize: 13, fontFamily: fonts.semibold, color: colors.blue },
-  plusBtn: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   editBtn: { minWidth: 28, alignItems: 'flex-end' },
-  list: { backgroundColor: colors.surface, borderRadius: 14, overflow: 'hidden', ...shadow(1) },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 14 },
-  rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  list: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  rowDivider: { borderTopWidth: 1, borderTopColor: colors.subtle },
   minusHit: { paddingVertical: 4 },
   minus: {
     width: 20,
@@ -183,19 +191,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   minusArmed: { transform: [{ rotate: '90deg' }] },
-  minusBar: { width: 10, height: 2, borderRadius: 1, backgroundColor: '#fff' },
+  minusBar: { width: 10, height: 2, borderRadius: 1, backgroundColor: colors.surface },
   body: { flex: 1, minWidth: 0 },
-  time: { fontSize: 18, fontFamily: fonts.medium, color: colors.text },
+  time: { fontSize: 15, fontFamily: fonts.bold, color: colors.text },
   subtitle: { fontSize: 12, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 1 },
-  dim: { color: colors.textMuted, opacity: 0.7 },
+  dim: { color: colors.textFaint },
   deleteBtn: {
     backgroundColor: colors.red,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    borderRadius: radii.sm,
+    paddingHorizontal: 14,
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  deleteText: { color: '#fff', fontSize: 13, fontFamily: fonts.semibold },
-  empty: { backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 22, paddingHorizontal: 16, ...shadow(1) },
+  deleteText: { color: colors.surface, fontSize: 13, fontFamily: fonts.bold },
+  empty: {
+    backgroundColor: colors.bg,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderStrong,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+  },
+  emptyPressed: { backgroundColor: colors.blueSoft, borderColor: colors.brand400 },
   emptyText: { fontSize: 13, color: colors.textMuted, fontFamily: fonts.regular, textAlign: 'center' },
-  footnote: { fontSize: 11.5, color: colors.textMuted, fontFamily: fonts.regular, paddingHorizontal: 4, marginTop: -6 },
+  footnote: { fontSize: 11.5, color: colors.textMuted, fontFamily: fonts.regular, lineHeight: 16 },
 });
