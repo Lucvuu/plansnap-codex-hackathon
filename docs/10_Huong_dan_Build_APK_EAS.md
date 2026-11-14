@@ -51,7 +51,21 @@ npx eas-cli@latest build --profile preview --platform android
 - [ ] Chụp ảnh bằng camera → AI đọc được → việc mới được xếp lịch.
 - [ ] Bấm xuất lịch → share sheet hiện ra → mở được bằng app Lịch trên máy.
 
-## 6. Lưu ý
+## 6. Cập nhật code qua mạng, không cần build lại (EAS Update)
+
+Từ bản build có `expo-updates` (commit `16acbf1`), các sửa đổi **chỉ đụng tới JS/TS** được đẩy thẳng xuống APK đã cài:
+
+```bash
+cd mobile
+eas update --channel preview --environment preview --platform android --message "mô tả ngắn"
+```
+
+- Trên điện thoại: **vuốt tắt app rồi mở lại 2 lần** — lần đầu app tải bản mới về, lần sau mới chạy bản mới.
+- Phải **build lại APK** khi: thêm/bớt thư viện có code native, đổi `app.json` (icon, quyền, plugin), hoặc đổi `version` (bản cập nhật chỉ áp cho APK cùng `version`, theo `runtimeVersion.policy = appVersion`).
+- **Không publish update trong giờ demo.** Nếu có bản mới trên server, lần vuốt tắt – mở lại trước BGK có thể đổi sang code mới giữa chừng. Chốt bản cuối, mở app 2 lần để chắc đã nhận, rồi mới lên sân khấu.
+- APK chỉ build cho CPU ARM (`arm64-v8a`, `armeabi-v7a`) nên không cài được trên máy ảo x86.
+
+## 7. Lưu ý
 
 - **Không demo bằng Expo Go**: Expo Go là app trung gian tải code từ máy tính, BGK có thể không coi là "ứng dụng trên điện thoại thật".
 - **iOS:** cài bản build lên iPhone cần tài khoản Apple Developer (TestFlight). Không có thì dùng máy Android thứ hai làm máy phụ (RSK-08).

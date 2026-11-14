@@ -22,6 +22,14 @@ npx eas-cli@latest build --profile production --platform ios    # bản lên App
 
 Thư mục `ios/` và `android/` được sinh tự động (`npx expo prebuild`) — không sửa tay, cấu hình native nằm trong `app.json`.
 
+Sửa đổi chỉ đụng tới JS/TS không cần build lại — đẩy qua EAS Update (kênh `preview` gắn với profile `preview`):
+
+```bash
+npx eas-cli@latest update --channel preview --environment preview --platform android --message "mô tả ngắn"
+```
+
+Chi tiết và lưu ý khi demo: [`docs/10_Huong_dan_Build_APK_EAS.md`](../docs/10_Huong_dan_Build_APK_EAS.md). APK chỉ build cho `arm64-v8a` + `armeabi-v7a` (`expo-build-properties`).
+
 ## Kiểm tra
 
 ```bash
