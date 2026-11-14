@@ -230,7 +230,16 @@ flowchart TD
 - **Mức độ ưu tiên:** **P1**
 - **Tiêu chuẩn chấp nhận:**
   - Nút `+ Thêm việc` cho phép bổ sung nhanh công việc phát sinh bằng tay.
-  - Nút `Xóa` cho phép loại bỏ các công việc không mong muốn khỏi lịch trình.
+  - Nút `Sửa` và `Xóa` cho phép cập nhật thông tin hoặc loại bỏ các công việc không mong muốn khỏi lịch trình.
+
+#### FR-3.3: Thêm Lịch Mới từ Ảnh Chụp (Nối tiếp) hoặc Thủ công (Giờ cố định / Tự xếp EDF)
+- **Mức độ ưu tiên:** **P1**
+- **Tiêu chuẩn chấp nhận:**
+  - Tại tab **Lịch tuần**, nút `+ Thêm lịch` mở bảng chọn nhanh 2 phương thức bổ sung lịch:
+    1. **Từ ảnh chụp / Camera:** Điều hướng sang tab Quét ảnh, cho phép chụp/chọn ảnh mới và **nối tiếp (merge/append)** các đầu việc trích xuất được vào lịch hiện tại mà không ghi đè mất các lịch đã xếp trước đó.
+    2. **Thêm lịch thủ công:** Mở form nhập liệu tích hợp công tắc chuyển 2 chế độ:
+       - **Tự xếp giờ rảnh (EDF):** Nhập tên việc, hạn chót, thời lượng để bộ xếp lịch EDF tự phân bổ vào các khoảng trống hợp lệ.
+       - **Giờ cố định (`fixed_start_iso`):** Nhập ngày/giờ bắt đầu và thời lượng để ghim cứng các sự kiện cố định (họp nhóm, lịch học, lịch hẹn) vào đúng vị trí trên timeline và tệp xuất `.ics`.
 
 ---
 
@@ -338,6 +347,7 @@ interface ScheduledEvent {
   durationMinutes: number;  // Thời lượng phiên (phút)
   sessionIndex: number;     // Phiên thứ mấy
   totalSessions: number;    // Tổng số phiên của việc này
+  isFixed?: boolean;        // True nếu là lịch đặt giờ cố định (không qua EDF)
   isUrgent: boolean;        // Cảnh báo nếu xếp sát deadline
 }
 ```

@@ -58,7 +58,7 @@
         model: DEFAULT_MODEL,
         slots: { ...DEFAULT_SLOTS },
         selectedDayKey: 'all',
-        activeTab: 'capture',
+        activeTab: 'tab-capture',
         isScanning: false,
         timerInterval: null
     };
@@ -85,6 +85,7 @@
         btnGotoSettings: $('#btn-goto-settings'),
         btnLoadPresetStudent: $('#btn-load-preset-student'),
         btnLoadPresetJudge: $('#btn-load-preset-judge'),
+        btnCameraJudge: $('#btn-camera-judge'),
 
         taskSummaryText: $('#task-summary-text'),
         tasksProgressFill: $('#tasks-progress-fill'),
@@ -94,9 +95,15 @@
         navTasksBadge: $('#nav-tasks-badge'),
 
         scheduleSummaryText: $('#schedule-summary-text'),
+        btnAddSchedule: $('#btn-add-schedule'),
         btnExportIcs: $('#btn-export-ics'),
         weekStrip: $('#week-strip'),
         scheduleContainer: $('#schedule-container'),
+
+        addScheduleSheet: $('#add-schedule-sheet'),
+        btnSheetClose: $('#btn-sheet-close'),
+        btnSchedFromPhoto: $('#btn-sched-from-photo'),
+        btnSchedManual: $('#btn-sched-manual'),
 
         apiKeyInput: $('#api-key-input'),
         btnToggleKeyVis: $('#btn-toggle-key-vis'),
@@ -112,9 +119,13 @@
         taskModalBackdrop: $('#task-modal-backdrop'),
         modalTitle: $('#modal-title'),
         taskModalForm: $('#task-modal-form'),
+        modalModeSwitch: $('#modal-mode-switch'),
         modalTaskId: $('#modal-task-id'),
         modalTaskTitle: $('#modal-task-title'),
+        modalDeadlineGroup: $('#modal-deadline-group'),
         modalTaskDeadline: $('#modal-task-deadline'),
+        modalFixedGroup: $('#modal-fixed-group'),
+        modalTaskStart: $('#modal-task-start'),
         modalTaskDuration: $('#modal-task-duration'),
         btnModalClose: $('#btn-modal-close'),
         btnModalCancel: $('#btn-modal-cancel'),
@@ -125,6 +136,26 @@
     };
 
     let toastTimer = null;
+    let persistInFlight = Promise.resolve();
+
+    function snapshotState() {
+        return {
+            tasks: state.tasks,
+            schedule: state.schedule,
+            images: state.images,
+            activeTab: state.activeTab,
+            selectedDayKey: state.selectedDayKey,
+            availableSlots: state.slots
+        };
+    }
+
+    function persistSnapshot() {
+        const snapshot = snapshotState();
+        persistInFlight = persistInFlight
+            .catch(() => {})
+            .then(() => window.storage.saveSnapshot(snapshot));
+        return persistInFlight;
+    }
     function showToast(msg, type = 'info') {
         if (!el.toast) return;
         el.toast.textContent = msg;
@@ -194,6 +225,7 @@
         el.tabPanes.forEach((pane) => {
             pane.classList.toggle('active', pane.id === targetId);
         });
+        persistSnapshot().catch(() => {});
     }
 
     function updateConnectionUI() {
@@ -220,7 +252,7 @@
             item.className = 'preview-item';
 
             const sizeLabel = img.compressedSizeKb
-                ? `${img.compressedSizeKb} KB`
+                ? `${img.compressedSizeKb} KB · tiết kiệm ${img.savingsPercent ?? 0}%`
                 : 'Mẫu';
 
             item.innerHTML = `
@@ -256,6 +288,7 @@
             );
             state.images.push(...compressed);
             renderImagePreviews();
+            await persistSnapshot();
             if (files.length > remaining) {
                 showToast(`Đã thêm ${toProcess.length} ảnh (tối đa 5 ảnh).`, 'warning');
             }
@@ -269,9 +302,10 @@
         const chosen = presetType === 'judge'
             ? (samples.judgeHandwritten ? [samples.judgeHandwritten] : [])
             : (samples.studentPack || []);
-        state.images = chosen.map((s) => ({ ...s, isPreset: true, presetType }));
+        state.images = chosen.map((s, index) => ({ ...s, id: `preset-${presetType}-${index}`, isPreset: true, presetType }));
         renderImagePreviews();
         switchTab('capture');
+        await persistSnapshot();
         showToast(
             presetType === 'judge'
                 ? 'Đã nạp ảnh ghi chú viết tay mẫu.'
@@ -328,20 +362,34 @@
             if (el.progressBar) el.progressBar.style.width = '100%';
             if (el.progressText) el.progressText.textContent = 'Hoàn tất xếp lịch!';
 
-            // Merge or replace: keep existing manual/completed if needed, or append new unique tasks
+            // Merge new extracted tasks into existing tasks (append new, update exact title+deadline matches)
             const newTasks = extracted.map((t) => ({
                 ...t,
                 completed: Boolean(t.completed)
             }));
-            state.tasks = newTasks;
+            const merged = [...state.tasks];
+            for (const nt of newTasks) {
+                const ntKey = `${(nt.title || '').trim().toLowerCase()}|${nt.deadline_iso || ''}`;
+                const existingIdx = merged.findIndex(
+                    (ex) => `${(ex.title || '').trim().toLowerCase()}|${ex.deadline_iso || ''}` === ntKey
+                );
+                if (existingIdx >= 0) {
+                    merged[existingIdx] = { ...merged[existingIdx], ...nt, id: merged[existingIdx].id };
+                } else {
+                    merged.push(nt);
+                }
+            }
+            state.tasks = merged;
+            state.images = [];
+            renderImagePreviews();
             await recomputeAndPersist();
 
             const sec = (elapsedMs / 1000).toFixed(1);
             const hasKey = Boolean(state.apiKey && state.apiKey.trim());
             showToast(
                 hasKey
-                    ? `Đã trích xuất ${newTasks.length} đầu việc (${sec}s · ${modelUsed})`
-                    : `Demo: ${newTasks.length} đầu việc được xếp lịch (${sec}s)`,
+                    ? `Đã thêm ${newTasks.length} đầu việc vào lịch (${sec}s · ${modelUsed})`
+                    : `Demo: đã thêm ${newTasks.length} đầu việc (${sec}s)`,
                 'success'
             );
 
@@ -351,7 +399,10 @@
                 switchTab('tasks');
             }, 220);
         } catch (err) {
-            showToast(`Lỗi AI: ${err.message}`, 'error');
+            const message = err?.code === 'TIMEOUT'
+                ? 'Mạng đang chậm, chạm “Phân tích” để thử lại'
+                : `Lỗi AI: ${err.message}`;
+            showToast(message, 'error');
             if (el.progressContainer) el.progressContainer.hidden = true;
         } finally {
             stopProgressTimer();
@@ -363,8 +414,7 @@
     async function recomputeAndPersist() {
         const activeTasks = state.tasks.filter((t) => !t.completed);
         state.schedule = scheduler.schedule(activeTasks, getEnabledSlotDefs(), new Date());
-        await window.storage.saveTasks(state.tasks);
-        await window.storage.saveSchedule(state.schedule);
+        await persistSnapshot();
         renderTasks();
         renderSchedule();
     }
@@ -394,17 +444,23 @@
 
         // Clarification cards for ambiguous deadlines
         if (el.clarificationArea) {
-            const ambiguous = state.tasks.filter((t) => !t.completed && t.needs_confirmation);
+            const ambiguous = state.tasks.filter((t) => !t.completed && (t.needs_confirmation || Number(t.confidence) < 0.75));
             el.clarificationArea.innerHTML = '';
             ambiguous.forEach((task) => {
                 const opts = task.options || task.clarification_options || [];
                 const card = document.createElement('div');
                 card.className = 'clarify-card';
-                const chipsHtml = opts.map((opt, i) => `
+                let chipsHtml = opts.map((opt, i) => `
                     <button type="button" class="clarify-chip" data-task-id="${escapeHtml(task.id)}" data-opt-idx="${i}">
                         ${escapeHtml(formatClarifyOptionLabel(opt))}
                     </button>
                 `).join('');
+                if (!chipsHtml && task.deadline_iso) {
+                    const label = Number(task.confidence) <= 0.5
+                        ? `✓ Xác nhận “${task.title}” · ${formatClarifyOptionLabel(task.deadline_iso)}`
+                        : `✓ Xác nhận hạn ${formatClarifyOptionLabel(task.deadline_iso)}`;
+                    chipsHtml = `<button type="button" class="clarify-chip" data-task-id="${escapeHtml(task.id)}" data-confirm-existing="true">${escapeHtml(label)}</button>`;
+                }
 
                 card.innerHTML = `
                     <div class="clarify-title">${escapeHtml(task.question || ('Cần xác nhận hạn: ' + task.title))}</div>
@@ -579,13 +635,14 @@
                         <span class="agenda-start">${startStr}</span>
                         <span class="agenda-end">${endStr}</span>
                     </div>
-                    <div class="agenda-card${ev.isUrgent || ev.isPastDeadline ? ' urgent' : ''}">
+                    <div class="agenda-card${ev.isFixed ? ' fixed' : ''}${ev.isUrgent || ev.isPastDeadline ? ' urgent' : ''}">
                         <div class="agenda-card-top">
                             <div class="agenda-title">${escapeHtml(ev.originalTitle || ev.title)}</div>
                             ${partBadge}
                         </div>
                         <div class="agenda-meta">
                             <span>${ev.durationMinutes} phút</span>
+                            ${ev.isFixed ? '<span class="fixed-tag">Giờ cố định</span>' : ''}
                             ${ev.isUrgent ? '<span class="urgent-tag">Ưu tiên gấp</span>' : ''}
                             <a class="agenda-gcal-link" href="${gcalUrl}" target="_blank" rel="noopener">Google Calendar ↗</a>
                         </div>
@@ -598,23 +655,43 @@
         });
     }
 
-    function openTaskModal(taskId = null) {
+    let currentModalMode = 'edf';
+
+    function setModalMode(mode) {
+        currentModalMode = mode === 'fixed' ? 'fixed' : 'edf';
+        const btns = el.modalModeSwitch ? Array.from(el.modalModeSwitch.querySelectorAll('.seg-btn')) : [];
+        btns.forEach((b) => b.classList.toggle('active', b.dataset.mode === currentModalMode));
+        if (el.modalDeadlineGroup) el.modalDeadlineGroup.hidden = currentModalMode === 'fixed';
+        if (el.modalFixedGroup) el.modalFixedGroup.hidden = currentModalMode !== 'fixed';
+        if (el.modalTaskDeadline) el.modalTaskDeadline.required = currentModalMode === 'edf';
+        if (el.modalTaskStart) el.modalTaskStart.required = currentModalMode === 'fixed';
+    }
+
+    function openTaskModal(taskId = null, preferredMode = 'edf') {
         if (!el.taskModalBackdrop) return;
+        const nowPlus1h = new Date(Date.now() + 3600000);
+        nowPlus1h.setMinutes(0, 0, 0);
+        const defDeadline = new Date(Date.now() + 48 * 3600000);
+        defDeadline.setHours(23, 59, 0, 0);
+
         if (taskId) {
             const task = state.tasks.find((t) => t.id === taskId);
             if (!task) return;
-            el.modalTitle.textContent = 'Chỉnh sửa đầu việc';
+            const mode = task.fixed_start_iso ? 'fixed' : 'edf';
+            setModalMode(mode);
+            el.modalTitle.textContent = mode === 'fixed' ? 'Chỉnh sửa lịch cố định' : 'Chỉnh sửa đầu việc';
             el.modalTaskId.value = task.id;
             el.modalTaskTitle.value = task.title || '';
-            el.modalTaskDeadline.value = toDatetimeLocalValue(task.deadline_iso);
+            el.modalTaskDeadline.value = toDatetimeLocalValue(task.deadline_iso || defDeadline.toISOString());
+            el.modalTaskStart.value = toDatetimeLocalValue(task.fixed_start_iso || nowPlus1h.toISOString());
             el.modalTaskDuration.value = task.estimated_minutes || 60;
         } else {
-            el.modalTitle.textContent = 'Thêm đầu việc mới';
+            setModalMode(preferredMode);
+            el.modalTitle.textContent = preferredMode === 'fixed' ? 'Thêm lịch cố định' : 'Thêm đầu việc mới';
             el.modalTaskId.value = '';
             el.modalTaskTitle.value = '';
-            const def = new Date(Date.now() + 48 * 3600000);
-            def.setHours(23, 59, 0, 0);
-            el.modalTaskDeadline.value = toDatetimeLocalValue(def.toISOString());
+            el.modalTaskDeadline.value = toDatetimeLocalValue(defDeadline.toISOString());
+            el.modalTaskStart.value = toDatetimeLocalValue(nowPlus1h.toISOString());
             el.modalTaskDuration.value = 60;
         }
         el.taskModalBackdrop.hidden = false;
@@ -623,6 +700,14 @@
 
     function closeTaskModal() {
         if (el.taskModalBackdrop) el.taskModalBackdrop.hidden = true;
+    }
+
+    function openAddScheduleSheet() {
+        if (el.addScheduleSheet) el.addScheduleSheet.hidden = false;
+    }
+
+    function closeAddScheduleSheet() {
+        if (el.addScheduleSheet) el.addScheduleSheet.hidden = true;
     }
 
     function renderSettings() {
@@ -637,18 +722,22 @@
     }
 
     async function loadPersistedState() {
-        const [savedTasks, savedKey, savedModel, savedSlots] = await Promise.all([
-            window.storage.getTasks(),
+        const [savedSnapshot, savedKey, savedModel, savedSlots] = await Promise.all([
+            window.storage.getSnapshot(),
             window.storage.getSetting('gemini_api_key', ''),
             window.storage.getSetting('gemini_model', DEFAULT_MODEL),
             window.storage.getSetting('available_slots', DEFAULT_SLOTS)
         ]);
 
-        state.tasks = Array.isArray(savedTasks) ? savedTasks : [];
+        state.tasks = Array.isArray(savedSnapshot.tasks) ? savedSnapshot.tasks : [];
+        state.schedule = Array.isArray(savedSnapshot.schedule) ? savedSnapshot.schedule : [];
+        state.images = Array.isArray(savedSnapshot.images) ? savedSnapshot.images : [];
         state.apiKey = savedKey || '';
-        state.slots = { ...DEFAULT_SLOTS, ...(savedSlots || {}) };
+        state.slots = { ...DEFAULT_SLOTS, ...(savedSlots || {}), ...(savedSnapshot.appState?.availableSlots || {}) };
+        state.activeTab = savedSnapshot.appState?.activeTab || 'tab-capture';
+        state.selectedDayKey = savedSnapshot.appState?.selectedDayKey || 'all';
 
-        // Auto-migrate deprecated models to fast Gemini 3 Flash Preview
+        // Migrate older preview models to the PRD baseline: Gemini 2.5 Flash.
         if (!savedModel || DEPRECATED_MODELS.has(savedModel)) {
             state.model = DEFAULT_MODEL;
             await window.storage.saveSetting('gemini_model', DEFAULT_MODEL);
@@ -656,20 +745,26 @@
             state.model = savedModel;
         }
 
-        state.schedule = scheduler.schedule(
-            state.tasks.filter((t) => !t.completed),
-            getEnabledSlotDefs(),
-            new Date()
-        );
+        if (!state.schedule.length && state.tasks.length) {
+            state.schedule = scheduler.schedule(state.tasks.filter((t) => !t.completed), getEnabledSlotDefs(), new Date());
+            await persistSnapshot();
+        }
 
         updateConnectionUI();
         renderSettings();
         renderImagePreviews();
         renderTasks();
         renderSchedule();
+        switchTab(state.activeTab);
     }
 
     function bindEvents() {
+        const flushState = () => { persistSnapshot().catch(() => {}); };
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flushState();
+        });
+        window.addEventListener('pagehide', flushState);
+
         // Bottom Nav
         el.navItems.forEach((btn) => {
             btn.addEventListener('click', () => switchTab(btn.dataset.tab));
@@ -711,12 +806,14 @@
             if (!btn) return;
             const idx = Number(btn.dataset.idx);
             state.images.splice(idx, 1);
+            persistSnapshot().catch(() => {});
             renderImagePreviews();
         });
 
         // Presets & Scan
         el.btnLoadPresetStudent?.addEventListener('click', () => loadPreset('student'));
         el.btnLoadPresetJudge?.addEventListener('click', () => loadPreset('judge'));
+        el.btnCameraJudge?.addEventListener('click', () => el.cameraInput?.click());
         el.btnScan?.addEventListener('click', runExtraction);
         el.btnGotoSettings?.addEventListener('click', () => switchTab('settings'));
 
@@ -730,6 +827,13 @@
             const optIdx = Number(chip.dataset.optIdx);
             const task = state.tasks.find((t) => t.id === taskId);
             const opts = task?.options || task?.clarification_options || [];
+            if (task && chip.dataset.confirmExisting === 'true') {
+                task.needs_confirmation = false;
+                task.confidence = Math.max(0.75, Number(task.confidence) || 0.75);
+                await recomputeAndPersist();
+                showToast('Đã xác nhận nhanh tên việc và hạn chót.', 'success');
+                return;
+            }
             const chosen = opts[optIdx];
             if (!task || !chosen) return;
 
@@ -765,7 +869,28 @@
             }
         });
 
-        // Modal form
+        // Add Schedule Action Sheet
+        el.btnAddSchedule?.addEventListener('click', openAddScheduleSheet);
+        el.btnSheetClose?.addEventListener('click', closeAddScheduleSheet);
+        el.addScheduleSheet?.addEventListener('click', (e) => {
+            if (e.target === el.addScheduleSheet) closeAddScheduleSheet();
+        });
+        el.btnSchedFromPhoto?.addEventListener('click', () => {
+            closeAddScheduleSheet();
+            switchTab('tab-capture');
+            showToast('Chọn hoặc chụp ảnh mới để nối vào lịch.', 'info');
+        });
+        el.btnSchedManual?.addEventListener('click', () => {
+            closeAddScheduleSheet();
+            openTaskModal(null, 'fixed');
+        });
+
+        // Modal mode switch & form
+        el.modalModeSwitch?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.seg-btn');
+            if (!btn) return;
+            setModalMode(btn.dataset.mode);
+        });
         el.btnModalClose?.addEventListener('click', closeTaskModal);
         el.btnModalCancel?.addEventListener('click', closeTaskModal);
         el.taskModalBackdrop?.addEventListener('click', (e) => {
@@ -775,32 +900,50 @@
             e.preventDefault();
             const id = el.modalTaskId.value.trim();
             const title = el.modalTaskTitle.value.trim();
-            const dlVal = el.modalTaskDeadline.value;
             const duration = Math.max(15, Number(el.modalTaskDuration.value) || 60);
-            const deadlineIso = dlVal ? new Date(dlVal).toISOString() : null;
 
             if (!title) return;
+
+            let fixedStartIso = null;
+            let deadlineIso = null;
+            if (currentModalMode === 'fixed') {
+                const startVal = el.modalTaskStart?.value;
+                if (!startVal) return;
+                const startDate = new Date(startVal);
+                fixedStartIso = startDate.toISOString();
+                deadlineIso = new Date(startDate.getTime() + duration * 60000).toISOString();
+            } else {
+                const dlVal = el.modalTaskDeadline?.value;
+                deadlineIso = dlVal ? new Date(dlVal).toISOString() : null;
+            }
 
             if (id) {
                 const existing = state.tasks.find((t) => t.id === id);
                 if (existing) {
                     existing.title = title;
+                    existing.fixed_start_iso = fixedStartIso;
                     existing.deadline_iso = deadlineIso;
                     existing.estimated_minutes = duration;
                     existing.needs_confirmation = false;
                 }
-                showToast('Đã cập nhật đầu việc.', 'success');
+                showToast('Đã cập nhật lịch.', 'success');
             } else {
                 state.tasks.push({
                     id: `manual-${Date.now()}`,
                     title,
+                    fixed_start_iso: fixedStartIso,
                     deadline_iso: deadlineIso,
                     estimated_minutes: duration,
-                    source_quote: 'Thêm thủ công',
+                    source_quote: currentModalMode === 'fixed' ? 'Lịch cố định' : 'Thêm thủ công',
                     needs_confirmation: false,
                     completed: false
                 });
-                showToast('Đã thêm đầu việc mới.', 'success');
+                showToast(
+                    currentModalMode === 'fixed'
+                        ? 'Đã thêm lịch cố định mới.'
+                        : 'Đã thêm & tự xếp vào giờ rảnh.',
+                    'success'
+                );
             }
 
             closeTaskModal();
@@ -812,6 +955,7 @@
             const pill = e.target.closest('.week-day-pill');
             if (!pill) return;
             state.selectedDayKey = pill.dataset.dayKey || 'all';
+            persistSnapshot().catch(() => {});
             renderSchedule();
         });
 
@@ -884,6 +1028,7 @@
             if (el.clearConfirmBox) el.clearConfirmBox.hidden = true;
         });
         el.btnClearConfirm?.addEventListener('click', async () => {
+            await persistInFlight.catch(() => {});
             await window.storage.clearAll();
             state.images = [];
             state.tasks = [];
@@ -892,12 +1037,14 @@
             state.model = DEFAULT_MODEL;
             state.slots = { ...DEFAULT_SLOTS };
             state.selectedDayKey = 'all';
+            state.activeTab = 'tab-capture';
             if (el.clearConfirmBox) el.clearConfirmBox.hidden = true;
             updateConnectionUI();
             renderSettings();
             renderImagePreviews();
             renderTasks();
             renderSchedule();
+            switchTab('capture');
             showToast('Đã xóa toàn bộ dữ liệu cục bộ.', 'info');
         });
 

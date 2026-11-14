@@ -1073,6 +1073,117 @@ body {
 
 .nav-badge[hidden] { display: none; }
 
+/* Add Schedule Action Sheet & Segmented Control */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-btn.neutral-soft {
+  background: var(--subtle);
+  color: var(--text);
+}
+
+.pill-btn.neutral-soft:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sheet-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheet-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 13px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.sheet-option-btn:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.sheet-opt-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sheet-opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sheet-opt-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sheet-opt-text span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: var(--subtle);
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.seg-btn {
+  border: none;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.agenda-card.fixed {
+  border-left-color: #10b981;
+}
+
+.fixed-tag {
+  color: #059669;
+  font-weight: 700;
+}
+
 /* Standalone Desktop Centering */
 @media (min-width: 601px) {
   body {
