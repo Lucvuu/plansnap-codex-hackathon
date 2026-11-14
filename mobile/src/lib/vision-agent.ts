@@ -16,12 +16,28 @@ export class NoApiKeyError extends Error {
   }
 }
 
-function geminiRequest(model: string, apiKey: string, body: unknown) {
-  return fetch(`${API_BASE}/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify(body),
-  });
+const REQUEST_TIMEOUT_MS = 15000;
+
+/** A failure worth one automatic retry: dropped connection or an unusable model answer. */
+class TransientError extends Error {}
+
+async function geminiRequest(model: string, apiKey: string, body: unknown) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_BASE}/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+  } catch {
+    // A timeout is not retried automatically: the user has already waited 15s.
+    if (ctrl.signal.aborted) throw new Error('Mạng đang chậm (quá 15 giây). Bấm lại để thử lại.');
+    throw new TransientError('Không kết nối được Gemini. Kiểm tra mạng rồi bấm thử lại.');
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Try each candidate model; fall through on 404 (unknown model) and 503 (overloaded). */
@@ -76,21 +92,29 @@ export async function callGeminiApi(
     }
   }
 
-  const { response, model: modelUsed } = await callWithFallback(
-    apiKey,
-    model,
-    {
-      contents: [{ parts }],
-      generationConfig: { temperature: 0.0, response_mime_type: 'application/json' },
-    },
-    140,
-  );
+  const body = {
+    contents: [{ parts }],
+    generationConfig: { temperature: 0.0, response_mime_type: 'application/json' },
+  };
 
-  const data = await response.json();
-  const rawJsonText: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawJsonText) throw new Error('Gemini API không trả về dữ liệu hợp lệ.');
+  const attempt = async (): Promise<ExtractionResult> => {
+    const { response, model: modelUsed } = await callWithFallback(apiKey, model, body, 140);
+    try {
+      const data = await response.json();
+      const rawJsonText: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawJsonText) throw new Error('empty');
+      return { tasks: parseExtractionJson(rawJsonText), modelUsed, elapsedMs: Date.now() - t0 };
+    } catch {
+      throw new TransientError('Gemini trả về dữ liệu không đọc được. Bấm lại để thử lại.');
+    }
+  };
 
-  return { tasks: parseExtractionJson(rawJsonText), modelUsed, elapsedMs: Date.now() - t0 };
+  try {
+    return await attempt();
+  } catch (err) {
+    if (!(err instanceof TransientError)) throw err;
+    return attempt(); // one automatic retry (NFR-04)
+  }
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));

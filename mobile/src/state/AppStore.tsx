@@ -33,16 +33,20 @@ interface AppStore {
   hasKey: boolean;
   pendingCount: number;
   isScanning: boolean;
+  /** Tab that was open when the app was last closed (restored on launch). */
+  lastTab: storage.TabPath;
 
   addImages: (images: CapturedImage[]) => void;
   removeImage: (id: string) => void;
   loadPreset: (type: PresetType) => Promise<void>;
-  runExtraction: () => Promise<boolean>;
+  /** Extracts tasks from the staged images, or from `direct` (camera challenge) without staging. */
+  runExtraction: (direct?: CapturedImage[]) => Promise<boolean>;
 
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   upsertTask: (input: TaskInput) => void;
-  resolveClarification: (taskId: string, optionIndex: number) => void;
+  /** Returns false when the chosen option carries no usable date. */
+  resolveClarification: (taskId: string, optionIndex: number) => boolean;
 
   saveApiSettings: (apiKey: string, model: string) => Promise<void>;
   testApiKey: (apiKey: string, model: string) => Promise<string | null>;
@@ -67,6 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [model, setModel] = useState(DEFAULT_MODEL);
   const [slots, setSlots] = useState<SlotMap>({ ...DEFAULT_SLOTS });
   const [isScanning, setIsScanning] = useState(false);
+  const [lastTab, setLastTab] = useState<storage.TabPath>('/');
   // Bumped when the app returns to the foreground so the schedule re-anchors to "now".
   const [clock, setClock] = useState(() => Date.now());
 
@@ -81,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setApiKey(saved.apiKey);
         setModel(saved.model);
         setSlots(saved.slots);
+        setLastTab(saved.lastTab);
       })
       .catch((err) => toast(`Không đọc được dữ liệu đã lưu: ${err.message}`, 'error'))
       .finally(() => !cancelled && setHydrated(true));
@@ -145,12 +151,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast],
   );
 
-  const runExtraction = useCallback(async () => {
-    if (!images.length || isScanning) return false;
+  const runExtraction = useCallback(async (direct?: CapturedImage[]) => {
+    const source = direct ?? images;
+    if (!source.length || isScanning) return false;
     setIsScanning(true);
     try {
-      const result = await VisionAgent.extractTasks(images, apiKey, model);
+      const result = await VisionAgent.extractTasks(source, apiKey, model);
       const newTasks = result.tasks.map((t) => ({ ...t, completed: Boolean(t.completed) }));
+      if (newTasks.length === 0) {
+        // FR-2.1: an image without tasks yields nothing — say so instead of "added 0".
+        toast('Không tìm thấy đầu việc hay hạn chót nào trong ảnh.', 'warning');
+        return false;
+      }
       setTasks((prev) => {
         const merged = [...prev];
         for (const nt of newTasks) {
@@ -166,7 +178,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         return merged;
       });
-      setImages([]);
+      if (!direct) setImages([]);
       touchClock();
       const sec = (result.elapsedMs / 1000).toFixed(1);
       toast(
@@ -245,12 +257,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const opts = task?.options || task?.clarification_options || [];
       const chosen = opts[optionIndex];
       const iso = clarifyOptionIso(chosen);
-      if (!task || !chosen || !iso) return;
+      if (!task || !chosen || !iso) return false;
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, deadline_iso: iso, needs_confirmation: false } : t)),
       );
       touchClock();
       toast(`Đã chốt hạn: ${formatClarifyOptionLabel(chosen)}`, 'success');
+      return true;
     },
     [tasks, toast, touchClock],
   );
@@ -320,6 +333,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     hasKey,
     pendingCount,
     isScanning,
+    lastTab,
     addImages,
     removeImage,
     loadPreset,

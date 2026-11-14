@@ -163,6 +163,19 @@ export function scheduleTasks(
   );
   let windows = generateAvailableWindows(slotsDef, referenceDate, horizonDays);
 
+  // Fixed-time events occupy their slot: carve them out so EDF sessions never overlap them.
+  for (const fixed of scheduledEvents) {
+    const busyStart = new Date(fixed.start);
+    const busyEnd = new Date(fixed.end);
+    windows = windows.flatMap((win) => {
+      if (busyEnd <= win.pointer || busyStart >= win.end) return [win];
+      const parts: AvailableWindow[] = [];
+      if (busyStart > win.pointer) parts.push({ pointer: win.pointer, end: busyStart });
+      if (busyEnd < win.end) parts.push({ pointer: busyEnd, end: win.end });
+      return parts;
+    });
+  }
+
   for (const task of validTasks) {
     const chunks = splitIntoSessions(task.estimated_minutes);
     const safeCutoff = new Date(task.deadlineDate.getTime() - BUFFER_HOURS * 3600000);

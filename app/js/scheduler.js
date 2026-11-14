@@ -65,6 +65,19 @@ class PlanSnapScheduler {
     const horizonDays = Math.max(14, Math.min(90, Math.ceil((furthestDeadline - referenceDate.getTime()) / 86400000) + 7));
     let windows = this.generateAvailableWindows(slotsDef, referenceDate, horizonDays);
 
+    // Fixed-time events occupy their slot: carve them out so EDF sessions never overlap them.
+    for (const fixed of scheduledEvents) {
+      const busyStart = new Date(fixed.start);
+      const busyEnd = new Date(fixed.end);
+      windows = windows.flatMap((win) => {
+        if (busyEnd <= win.pointer || busyStart >= win.end) return [win];
+        const parts = [];
+        if (busyStart > win.pointer) parts.push({ pointer: win.pointer, end: busyStart });
+        if (busyEnd < win.end) parts.push({ pointer: busyEnd, end: win.end });
+        return parts;
+      });
+    }
+
     for (const task of validTasks) {
       const chunks = this.splitIntoSessions(task.estimated_minutes);
       const safeCutoff = new Date(task.deadlineDate.getTime() - 3 * 3600000);

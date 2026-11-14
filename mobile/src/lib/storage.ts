@@ -11,13 +11,19 @@ const KEYS = {
   tasks: 'plansnap.tasks',
   model: 'plansnap.gemini_model',
   slots: 'plansnap.available_slots',
+  lastTab: 'plansnap.last_tab',
 } as const;
+
+/** Tab routes that can be restored after the app is killed and reopened. */
+export const TAB_PATHS = ['/', '/tasks', '/schedule', '/settings'] as const;
+export type TabPath = (typeof TAB_PATHS)[number];
 
 export interface PersistedState {
   tasks: Task[];
   apiKey: string;
   model: string;
   slots: SlotMap;
+  lastTab: TabPath;
 }
 
 function parseJson<T>(raw: string | null, fallback: T): T {
@@ -31,7 +37,7 @@ function parseJson<T>(raw: string | null, fallback: T): T {
 
 export async function loadPersistedState(): Promise<PersistedState> {
   const [entries, apiKey] = await Promise.all([
-    AsyncStorage.multiGet([KEYS.tasks, KEYS.model, KEYS.slots]),
+    AsyncStorage.multiGet([KEYS.tasks, KEYS.model, KEYS.slots, KEYS.lastTab]),
     getApiKey(),
   ]);
   const map = Object.fromEntries(entries);
@@ -47,9 +53,12 @@ export async function loadPersistedState(): Promise<PersistedState> {
     await AsyncStorage.setItem(KEYS.model, DEFAULT_MODEL);
   }
 
-  return { tasks: Array.isArray(tasks) ? tasks : [], apiKey, model, slots };
+  const lastTab = TAB_PATHS.find((p) => p === map[KEYS.lastTab]) ?? '/';
+
+  return { tasks: Array.isArray(tasks) ? tasks : [], apiKey, model, slots, lastTab };
 }
 
+export const saveLastTab = (path: string) => AsyncStorage.setItem(KEYS.lastTab, path);
 export const saveTasks = (tasks: Task[]) => AsyncStorage.setItem(KEYS.tasks, JSON.stringify(tasks));
 export const saveSlots = (slots: SlotMap) => AsyncStorage.setItem(KEYS.slots, JSON.stringify(slots));
 

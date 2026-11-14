@@ -8,13 +8,14 @@ import { useToast } from '@/components/Toast';
 import { Button, InlineAlert, LinkButton, PillButton } from '@/components/ui';
 import { successHaptic } from '@/lib/haptics';
 import { PermissionDeniedError, pickImages, type PickSource } from '@/lib/pick-images';
+import type { CapturedImage } from '@/lib/types';
 import { MAX_IMAGES, useApp } from '@/state/AppStore';
 import { colors, fonts, shadow, tabular } from '@/theme';
 
 export default function CaptureScreen() {
   const { images, isScanning, hasKey, addImages, removeImage, loadPreset, runExtraction } = useApp();
   const toast = useToast();
-  const [picking, setPicking] = useState<PickSource | null>(null);
+  const [picking, setPicking] = useState<PickSource | 'challenge' | null>(null);
   const [progressText, setProgressText] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [bar] = useState(() => new Animated.Value(0));
@@ -25,26 +26,37 @@ export default function CaptureScreen() {
   const animateBar = (pct: number) =>
     Animated.timing(bar, { toValue: pct, duration: 250, useNativeDriver: false }).start();
 
+  const pick = async (source: PickSource, limit: number, busy: PickSource | 'challenge' = source) => {
+    setPicking(busy);
+    try {
+      return await pickImages(source, limit);
+    } catch (err) {
+      const e = err as Error;
+      toast(err instanceof PermissionDeniedError ? e.message : `Lỗi nén ảnh: ${e.message}`, err instanceof PermissionDeniedError ? 'warning' : 'error');
+      return [];
+    } finally {
+      setPicking(null);
+    }
+  };
+
   const onPick = async (source: PickSource) => {
     const remaining = MAX_IMAGES - images.length;
     if (remaining <= 0) {
       toast(`Tối đa ${MAX_IMAGES} ảnh mỗi lần quét.`, 'warning');
       return;
     }
-    setPicking(source);
-    try {
-      const picked = await pickImages(source, remaining);
-      if (picked.length) addImages(picked);
-    } catch (err) {
-      const e = err as Error;
-      toast(err instanceof PermissionDeniedError ? e.message : `Lỗi nén ảnh: ${e.message}`, err instanceof PermissionDeniedError ? 'warning' : 'error');
-    } finally {
-      setPicking(null);
-    }
+    const picked = await pick(source, remaining);
+    if (picked.length) addImages(picked);
   };
 
-  const onScan = async () => {
-    if (!images.length || isScanning) return;
+  // FR-5.2: one tap → camera → AI → the new task is appended and scheduled, no staging step.
+  const onChallenge = async () => {
+    const picked = await pick('camera', 1, 'challenge');
+    if (picked.length) onScan(picked);
+  };
+
+  const onScan = async (direct?: CapturedImage[]) => {
+    if (!(direct ?? images).length || isScanning) return;
     const startedAt = Date.now();
     setElapsed(0);
     setProgressText('Đang gửi ảnh tới Gemini Vision...');
@@ -58,7 +70,7 @@ export default function CaptureScreen() {
       }, 450),
     );
 
-    const ok = await runExtraction();
+    const ok = await runExtraction(direct);
     clearInterval(tick);
     timers.current.forEach(clearTimeout);
     timers.current = [];
@@ -132,9 +144,18 @@ export default function CaptureScreen() {
 
       <Button
         label={count > 0 ? `Trích xuất ${count} ảnh & Xếp lịch` : 'Trích xuất & Xếp lịch'}
-        onPress={onScan}
+        onPress={() => onScan()}
         disabled={count === 0}
         loading={isScanning}
+      />
+
+      <Button
+        variant="outline"
+        label="Thử thách viết tay: chụp & xếp lịch ngay"
+        icon={<Icon name="camera" size={16} color={colors.text} />}
+        onPress={onChallenge}
+        disabled={isScanning}
+        loading={picking === 'challenge'}
       />
 
       {progressText && (

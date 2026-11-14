@@ -1,8 +1,11 @@
+import { router, usePathname } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { useEffect, useRef } from 'react';
 import type { ColorValue } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
 import { Icon, type IconName } from '@/components/Icon';
+import { saveLastTab } from '@/lib/storage';
 import { useApp } from '@/state/AppStore';
 import { colors, fonts } from '@/theme';
 
@@ -11,7 +14,19 @@ function TabIcon({ name, color }: { name: IconName; color: ColorValue }) {
 }
 
 export default function TabsLayout() {
-  const { pendingCount } = useApp();
+  const { pendingCount, lastTab } = useApp();
+  const pathname = usePathname();
+  const restored = useRef(false);
+
+  // Swipe-kill → reopen lands on the tab the user left (NFR-02); later tab changes are remembered.
+  useEffect(() => {
+    if (!restored.current) {
+      restored.current = true;
+      if (lastTab !== '/') router.replace(lastTab);
+      return;
+    }
+    saveLastTab(pathname).catch(() => {});
+  }, [pathname, lastTab]);
 
   return (
     <Tabs

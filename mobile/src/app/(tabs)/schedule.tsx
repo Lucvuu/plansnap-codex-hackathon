@@ -237,8 +237,9 @@ function AgendaRow({ ev }: { ev: ScheduledEvent }) {
         </View>
         <View style={styles.cardMeta}>
           <Text style={styles.metaText}>{ev.durationMinutes} phút</Text>
-          {ev.isFixed && <Text style={styles.fixedTag}>Giờ cố định</Text>}
+          {ev.isFixed && <Text style={styles.greenTag}>Giờ cố định</Text>}
           {ev.isUrgent && <Text style={styles.urgentTag}>Ưu tiên gấp</Text>}
+          {!ev.isFixed && !urgent && <Text style={styles.greenTag}>Xong trước hạn ≥ 3 giờ</Text>}
           <Pressable
             role="link"
             accessibilityLabel="Thêm vào Google Calendar"
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   },
   cardMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   metaText: { fontSize: 11.5, color: colors.textMuted, fontFamily: fonts.regular },
-  fixedTag: { fontSize: 11.5, color: colors.green, fontFamily: fonts.bold },
+  greenTag: { fontSize: 11.5, color: colors.green, fontFamily: fonts.bold },
   urgentTag: { fontSize: 11.5, color: colors.red, fontFamily: fonts.bold },
   gcal: {
     marginLeft: 'auto',

@@ -62,6 +62,7 @@ test('scheduleTasks is identical to the PWA scheduler on 500 random scenarios', 
         needs_confirmation: rand() < 0.15,
         estimated_minutes: rand() < 0.1 ? undefined : durations[Math.floor(rand() * durations.length)],
         completed: rand() < 0.1,
+        fixed_start_iso: rand() < 0.15 ? new Date(ref.getTime() + rand() * 10 * 86400000).toISOString() : undefined,
       };
     });
     const slots = Object.fromEntries(SLOT_OPTIONS.map((o) => [o.key, rand() < 0.75])) as SlotMap;
@@ -112,6 +113,24 @@ test('fixed_start_iso pins fixed-time schedule even without EDF free slots', () 
   assert.equal(events[0].isFixed, true);
   assert.equal(events[0].durationMinutes, 90);
   assert.equal(new Date(events[0].start).getTime(), fixedStart.getTime());
+});
+
+test('EDF sessions never overlap a fixed-time event (FR-3.3)', () => {
+  // Monday 16/11/2026 08:00; the only free window that week night is 19:30–22:30.
+  const now = new Date(2026, 10, 16, 8, 0);
+  const tasks: Task[] = [
+    { id: 'meet', title: 'Họp nhóm', deadline_iso: null, fixed_start_iso: new Date(2026, 10, 16, 20, 0).toISOString(), estimated_minutes: 60 },
+    { id: 'essay', title: 'Essay', deadline_iso: new Date(2026, 10, 20, 17, 0).toISOString(), estimated_minutes: 180 },
+  ];
+  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now);
+  const meet = events.find((e) => e.taskId === 'meet')!;
+  const sessions = events.filter((e) => e.taskId === 'essay');
+  assert.equal(sessions.reduce((sum, e) => sum + e.durationMinutes, 0), 180);
+  for (const s of sessions) {
+    assert.ok(s.end <= meet.start || s.start >= meet.end, `${s.start}–${s.end} overlaps the fixed meeting`);
+  }
+  // 21:00–22:30 after the meeting is still usable that evening.
+  assert.equal(new Date(sessions[0].start).getTime(), new Date(2026, 10, 16, 21, 0).getTime());
 });
 
 test('demo pack schedules the two clear tasks and holds back the ambiguous one', () => {

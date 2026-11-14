@@ -1,4 +1,5 @@
 // Tab 2 — Đầu việc (extracted tasks, 1-tap deadline clarification, manual edits)
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -72,7 +73,8 @@ export default function TasksScreen() {
                     role="button"
                     onPress={() => {
                       tapHaptic();
-                      resolveClarification(task.id, i);
+                      // PRD §9: once the last ambiguous deadline is settled, jump to the plan.
+                      if (resolveClarification(task.id, i) && ambiguous.length === 1) router.navigate('/schedule');
                     }}
                     style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}>
                     {({ pressed }) => (
@@ -80,6 +82,12 @@ export default function TasksScreen() {
                     )}
                   </Pressable>
                 ))}
+                {opts.length === 0 && (
+                  // The model flagged the deadline but offered no dates: pick one instead of being stuck.
+                  <Pressable role="button" onPress={() => openSheet(task)} style={styles.chip}>
+                    <Text style={styles.chipText}>Chọn ngày giờ</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           );
@@ -150,6 +158,7 @@ function TaskRow({
         <View style={styles.meta}>
           <Text style={[styles.metaChip, dl.urgent && styles.metaChipUrgent]}>{dl.text}</Text>
           <Text style={styles.metaChip}>{Number(task.estimated_minutes) || 60} phút</Text>
+          {task.needs_confirmation && !done ? <Text style={[styles.metaChip, styles.metaChipUrgent]}>Cần xác nhận</Text> : null}
         </View>
         {task.source_quote ? (
           <Text style={styles.quote} numberOfLines={2}>

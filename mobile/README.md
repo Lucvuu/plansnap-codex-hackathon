@@ -52,4 +52,7 @@ npm run lint        # expo lint
 - **Đánh số phiên**: khi khung giờ rảnh bị chia nhỏ, PWA có thể hiện "Phiên 3/2"; bản này đánh số theo số phiên thực tế.
 - **Xóa dữ liệu** xóa cả API key đã lưu (PWA chỉ xóa trên giao diện, key vẫn còn trong IndexedDB).
 - Lịch tự tính lại khi mở lại app (mốc "bây giờ" được cập nhật).
+- **Thử thách viết tay (FR-5.2)**: một nút mở máy ảnh → AI đọc → nối việc mới vào lịch, không qua bước chọn ảnh.
+- **Gọi Gemini**: hết giờ sau 15 giây; tự thử lại 1 lần khi rớt kết nối hoặc JSON trả về không đọc được (NFR-04).
+- **Mở lại đúng tab** đang xem trước khi app bị đóng (NFR-02).
 - Không có kéo-thả ảnh và cầu nối `postMessage` cho trình giả lập desktop (chỉ có ý nghĩa với iframe web).
