@@ -1,9 +1,12 @@
-// Tab 3 — Lịch tuần (EDF-scheduled sessions, 7-day strip, .ics export)
+// Tab 3 — Lịch tuần (EDF-scheduled sessions, fixed schedule, 7-day strip, + Thêm lịch, .ics export)
 import * as Linking from 'expo-linking';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
+import { TaskSheet } from '@/components/TaskSheet';
 import { useToast } from '@/components/Toast';
 import { EmptyState, PillButton, ScreenHeading } from '@/components/ui';
 import { exportIcs } from '@/lib/export-ics';
@@ -16,10 +19,13 @@ import { colors, fonts, shadow, tabular } from '@/theme';
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function ScheduleScreen() {
-  const { schedule } = useApp();
+  const { schedule, upsertTask } = useApp();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
   const [selectedDayKey, setSelectedDayKey] = useState<string>('all');
   const [exporting, setExporting] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [manualModal, setManualModal] = useState<{ visible: boolean; nonce: number }>({ visible: false, nonce: 0 });
 
   const totalMins = schedule.reduce((acc, s) => acc + (s.durationMinutes || 0), 0);
   const hrs = (totalMins / 60).toFixed(1).replace(/\.0$/, '');
@@ -59,60 +65,130 @@ export default function ScheduleScreen() {
     }
   };
 
+  const onAddFromPhoto = () => {
+    setAddSheetOpen(false);
+    router.navigate('/');
+    toast('Chọn hoặc chụp ảnh mới để nối vào lịch.', 'info');
+  };
+
+  const onAddManual = () => {
+    setAddSheetOpen(false);
+    setManualModal((s) => ({ visible: true, nonce: s.nonce + 1 }));
+  };
+
   const todayKey = formatDayKey(new Date());
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <ScreenHeading
-        title="Lịch làm việc"
-        subtitle={schedule.length ? `${schedule.length} phiên · Tổng ${hrs} giờ làm việc` : 'Chưa có phiên làm việc nào'}
-        right={
-          <PillButton
-            tone="primary-soft"
-            label={Platform.OS === 'web' ? 'Tải .ics' : 'Xuất .ics'}
-            icon={<Icon name="download" size={14} color={colors.blue} strokeWidth={2.2} />}
-            onPress={onExport}
-            disabled={schedule.length === 0 || exporting}
-          />
-        }
-      />
+    <>
+      <ScrollView contentContainerStyle={styles.content}>
+        <ScreenHeading
+          title="Lịch làm việc"
+          subtitle={schedule.length ? `${schedule.length} phiên · Tổng ${hrs} giờ làm việc` : 'Chưa có phiên làm việc nào'}
+          right={
+            <View style={styles.headerActions}>
+              <PillButton
+                tone="primary-soft"
+                label="+ Thêm lịch"
+                onPress={() => setAddSheetOpen(true)}
+              />
+              <PillButton
+                label={Platform.OS === 'web' ? '.ics' : 'Xuất .ics'}
+                icon={<Icon name="download" size={14} color={colors.text} strokeWidth={2.2} />}
+                onPress={onExport}
+                disabled={schedule.length === 0 || exporting}
+              />
+            </View>
+          }
+        />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekStrip}>
-        <DayPill label="Lịch" num="Tất cả" active={selectedDayKey === 'all'} onPress={() => setSelectedDayKey('all')} />
-        {days.map((d) => (
-          <DayPill
-            key={d.key}
-            label={d.label}
-            num={String(d.num)}
-            dot={d.hasEvents}
-            active={selectedDayKey === d.key}
-            onPress={() => setSelectedDayKey(d.key)}
-          />
-        ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekStrip}>
+          <DayPill label="Lịch" num="Tất cả" active={selectedDayKey === 'all'} onPress={() => setSelectedDayKey('all')} />
+          {days.map((d) => (
+            <DayPill
+              key={d.key}
+              label={d.label}
+              num={String(d.num)}
+              dot={d.hasEvents}
+              active={selectedDayKey === d.key}
+              onPress={() => setSelectedDayKey(d.key)}
+            />
+          ))}
+        </ScrollView>
+
+        {groups.length === 0 ? (
+          <EmptyState>
+            {schedule.length === 0
+              ? 'Chưa có phiên học nào được xếp. Bấm “+ Thêm lịch” để quét ảnh hoặc nhập thủ công.'
+              : 'Không có phiên làm việc nào trong ngày đã chọn.'}
+          </EmptyState>
+        ) : (
+          groups.map(([key, group]) => {
+            const d = group.date;
+            return (
+              <View key={key} style={styles.dayGroup}>
+                <Text style={styles.dayHeader}>
+                  {`${key === todayKey ? 'Hôm nay · ' : ''}${DAY_FULL[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`.toUpperCase()}
+                </Text>
+                {group.items.map((ev) => (
+                  <AgendaRow key={ev.id} ev={ev} />
+                ))}
+              </View>
+            );
+          })
+        )}
       </ScrollView>
 
-      {groups.length === 0 ? (
-        <EmptyState>
-          {schedule.length === 0
-            ? 'Chưa có phiên học nào được xếp. Hãy trích xuất việc từ ảnh hoặc thêm thủ công.'
-            : 'Không có phiên làm việc nào trong ngày đã chọn.'}
-        </EmptyState>
-      ) : (
-        groups.map(([key, group]) => {
-          const d = group.date;
-          return (
-            <View key={key} style={styles.dayGroup}>
-              <Text style={styles.dayHeader}>
-                {`${key === todayKey ? 'Hôm nay · ' : ''}${DAY_FULL[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`.toUpperCase()}
-              </Text>
-              {group.items.map((ev) => (
-                <AgendaRow key={ev.id} ev={ev} />
-              ))}
+      {/* Action Sheet: Thêm lịch từ ảnh chụp hoặc thủ công */}
+      <Modal
+        visible={addSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddSheetOpen(false)}
+        statusBarTranslucent>
+        <View style={styles.backdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setAddSheetOpen(false)} accessibilityLabel="Đóng" />
+          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]} role="dialog" aria-modal>
+            <View style={styles.grabber} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Thêm lịch mới</Text>
+              <Pressable onPress={() => setAddSheetOpen(false)} style={styles.closeBtn} accessibilityLabel="Đóng" hitSlop={8}>
+                <Icon name="close" size={14} color={colors.textSecondary} strokeWidth={2.4} />
+              </Pressable>
             </View>
-          );
-        })
-      )}
-    </ScrollView>
+            <View style={styles.sheetOpts}>
+              <Pressable onPress={onAddFromPhoto} style={({ pressed }) => [styles.optBtn, pressed && styles.optBtnPressed]}>
+                <View style={styles.optIcon}>
+                  <Icon name="camera" size={20} color={colors.blue} />
+                </View>
+                <View style={styles.optText}>
+                  <Text style={styles.optTitle}>Từ ảnh chụp / Camera</Text>
+                  <Text style={styles.optDesc}>Chụp hoặc chọn ảnh Zalo, LMS, ghi chú viết tay để AI bóc tách &amp; nối vào lịch</Text>
+                </View>
+              </Pressable>
+
+              <Pressable onPress={onAddManual} style={({ pressed }) => [styles.optBtn, pressed && styles.optBtnPressed]}>
+                <View style={styles.optIcon}>
+                  <Icon name="edit" size={20} color={colors.blue} />
+                </View>
+                <View style={styles.optText}>
+                  <Text style={styles.optTitle}>Thêm lịch thủ công</Text>
+                  <Text style={styles.optDesc}>Tự đặt khung giờ cố định hoặc nhập hạn chót để máy tự xếp vào giờ rảnh</Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <TaskSheet
+        visible={manualModal.visible}
+        task={null}
+        defaultMode="fixed"
+        formKey={manualModal.nonce}
+        onClose={() => setManualModal((s) => ({ ...s, visible: false }))}
+        onSubmit={upsertTask}
+      />
+    </>
   );
 }
 
@@ -150,7 +226,7 @@ function AgendaRow({ ev }: { ev: ScheduledEvent }) {
         <Text style={[styles.start, tabular]}>{formatTimeHM(ev.start)}</Text>
         <Text style={[styles.end, tabular]}>{formatTimeHM(ev.end)}</Text>
       </View>
-      <View style={[styles.card, urgent && { borderLeftColor: colors.red }]}>
+      <View style={[styles.card, ev.isFixed && { borderLeftColor: colors.green }, urgent && { borderLeftColor: colors.red }]}>
         <View style={styles.cardTop}>
           <Text style={styles.cardTitle}>{ev.originalTitle || ev.title}</Text>
           {ev.totalSessions > 1 && (
@@ -161,6 +237,7 @@ function AgendaRow({ ev }: { ev: ScheduledEvent }) {
         </View>
         <View style={styles.cardMeta}>
           <Text style={styles.metaText}>{ev.durationMinutes} phút</Text>
+          {ev.isFixed && <Text style={styles.fixedTag}>Giờ cố định</Text>}
           {ev.isUrgent && <Text style={styles.urgentTag}>Ưu tiên gấp</Text>}
           <Pressable
             role="link"
@@ -179,6 +256,7 @@ function AgendaRow({ ev }: { ev: ScheduledEvent }) {
 
 const styles = StyleSheet.create({
   content: { paddingTop: 18, paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weekStrip: { gap: 6, paddingVertical: 2 },
   dayPill: {
     backgroundColor: colors.surface,
@@ -227,6 +305,7 @@ const styles = StyleSheet.create({
   },
   cardMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   metaText: { fontSize: 11.5, color: colors.textMuted, fontFamily: fonts.regular },
+  fixedTag: { fontSize: 11.5, color: colors.green, fontFamily: fonts.bold },
   urgentTag: { fontSize: 11.5, color: colors.red, fontFamily: fonts.bold },
   gcal: {
     marginLeft: 'auto',
@@ -239,4 +318,51 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   gcalText: { fontSize: 11.5, fontFamily: fonts.semibold, color: colors.blue },
+
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 8,
+    paddingHorizontal: 18,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
+  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 10 },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  sheetTitle: { fontSize: 16, fontFamily: fonts.bold, color: colors.text },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetOpts: { gap: 10 },
+  optBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 13,
+  },
+  optBtnPressed: { borderColor: colors.blue, backgroundColor: colors.blueSoft },
+  optIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow(1),
+  },
+  optText: { flex: 1, gap: 2 },
+  optTitle: { fontSize: 14, fontFamily: fonts.bold, color: colors.text },
+  optDesc: { fontSize: 12, fontFamily: fonts.regular, color: colors.textSecondary, lineHeight: 17 },
 });

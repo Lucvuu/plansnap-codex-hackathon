@@ -69,9 +69,7 @@ test('scheduleTasks is identical to the PWA scheduler on 500 random scenarios', 
     const ours = scheduleTasks(tasks, getEnabledSlotDefs(slots), ref);
     const theirs = JSON.parse(JSON.stringify(pwa.schedule(tasks, pwaSlotDefs(slots), ref)));
 
-    // Identical placement; only the "Phiên x/y" numbering intentionally differs (see below).
-    const strip = (evs: object[]) => evs.map(({ title: _t, totalSessions: _n, ...rest }: any) => rest);
-    assert.deepEqual(strip(ours), strip(theirs), `scenario ${scenario} diverged`);
+    assert.deepEqual(ours, theirs, `scenario ${scenario} diverged`);
 
     for (const ev of ours) {
       assert.ok(ev.sessionIndex <= ev.totalSessions, `scenario ${scenario}: Phiên ${ev.sessionIndex}/${ev.totalSessions}`);
@@ -81,8 +79,8 @@ test('scheduleTasks is identical to the PWA scheduler on 500 random scenarios', 
   }
 });
 
-test('fragmented windows never produce "Phiên 3/2" (PWA bug)', () => {
-  // Saturday 14/11/2026 14:08 — reproduces the split seen in the demo: 90 + 60 + 30 minutes.
+test('fragmented windows never produce "Phiên 3/2" and match PWA balanced split', () => {
+  // Saturday 14/11/2026 14:08
   const now = new Date(2026, 10, 14, 14, 8);
   const tasks: Task[] = [
     { id: 'quiz', title: 'Quiz', deadline_iso: new Date(2026, 10, 15, 23, 59).toISOString(), estimated_minutes: 45 },
@@ -91,8 +89,29 @@ test('fragmented windows never produce "Phiên 3/2" (PWA bug)', () => {
   ];
   const essay = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now).filter((e) => e.taskId === 'essay');
   const pwaEssay = pwa.schedule(tasks, pwaSlotDefs(DEFAULT_SLOTS), now).filter((e: any) => e.taskId === 'essay');
-  assert.deepEqual(pwaEssay.map((e: any) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2', '3/2']);
-  assert.deepEqual(essay.map((e) => `${e.sessionIndex}/${e.totalSessions}`), ['1/3', '2/3', '3/3']);
+  assert.deepEqual(pwaEssay.map((e: any) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2']);
+  assert.deepEqual(essay.map((e) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2']);
+});
+
+test('fixed_start_iso pins fixed-time schedule even without EDF free slots', () => {
+  const fixedStart = new Date(2026, 10, 16, 14, 0, 0);
+  const events = scheduleTasks(
+    [
+      {
+        id: 'meet-1',
+        title: 'Họp nhóm cố định',
+        deadline_iso: new Date(2026, 10, 16, 15, 30, 0).toISOString(),
+        fixed_start_iso: fixedStart.toISOString(),
+        estimated_minutes: 90,
+      },
+    ],
+    [],
+    new Date(2026, 10, 14, 10, 0, 0),
+  );
+  assert.equal(events.length, 1);
+  assert.equal(events[0].isFixed, true);
+  assert.equal(events[0].durationMinutes, 90);
+  assert.equal(new Date(events[0].start).getTime(), fixedStart.getTime());
 });
 
 test('demo pack schedules the two clear tasks and holds back the ambiguous one', () => {

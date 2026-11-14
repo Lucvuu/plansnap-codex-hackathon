@@ -33,14 +33,24 @@ function durationLabel(min: number) {
 interface Props {
   visible: boolean;
   task: Task | null; // null → create
+  defaultMode?: 'edf' | 'fixed';
   /** Changes on every open so the form re-initialises from `task`. */
   formKey: number;
   onClose: () => void;
   onSubmit: (input: TaskInput) => void;
 }
 
-export function TaskSheet({ visible, task, formKey, onClose, onSubmit }: Props) {
+export function TaskSheet({ visible, task, defaultMode = 'edf', formKey, onClose, onSubmit }: Props) {
   const insets = useSafeAreaInsets();
+  const isFixedDefault = task ? Boolean(task.fixed_start_iso) : defaultMode === 'fixed';
+  const heading = task
+    ? isFixedDefault
+      ? 'Chỉnh sửa lịch cố định'
+      : 'Chỉnh sửa đầu việc'
+    : isFixedDefault
+      ? 'Thêm lịch mới'
+      : 'Thêm đầu việc mới';
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       {/* Android is edge-to-edge (the window no longer resizes for the keyboard), so pad on both. */}
@@ -49,12 +59,12 @@ export function TaskSheet({ visible, task, formKey, onClose, onSubmit }: Props) 
         <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]} role="dialog" aria-modal>
           <View style={styles.grabber} />
           <View style={styles.header}>
-            <Text style={styles.title}>{task ? 'Chỉnh sửa đầu việc' : 'Thêm đầu việc mới'}</Text>
+            <Text style={styles.title}>{heading}</Text>
             <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Đóng" hitSlop={8}>
               <Icon name="close" size={14} color={colors.textSecondary} strokeWidth={2.4} />
             </Pressable>
           </View>
-          <TaskForm key={formKey} task={task} onClose={onClose} onSubmit={onSubmit} />
+          <TaskForm key={formKey} task={task} defaultMode={defaultMode} onClose={onClose} onSubmit={onSubmit} />
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -66,9 +76,26 @@ function initialDeadline(task: Task | null): Date {
   return d && !isNaN(d.getTime()) ? d : defaultNewDeadline();
 }
 
-function TaskForm({ task, onClose, onSubmit }: Pick<Props, 'task' | 'onClose' | 'onSubmit'>) {
+function initialFixedStart(task: Task | null): Date {
+  const d = task?.fixed_start_iso ? new Date(task.fixed_start_iso) : null;
+  if (d && !isNaN(d.getTime())) return d;
+  const next = new Date(Date.now() + 3600000);
+  next.setMinutes(0, 0, 0);
+  return next;
+}
+
+function TaskForm({
+  task,
+  defaultMode = 'edf',
+  onClose,
+  onSubmit,
+}: Pick<Props, 'task' | 'defaultMode' | 'onClose' | 'onSubmit'>) {
+  const [mode, setMode] = useState<'edf' | 'fixed'>(() =>
+    task ? (task.fixed_start_iso ? 'fixed' : 'edf') : defaultMode,
+  );
   const [title, setTitle] = useState(() => task?.title ?? '');
   const [deadline, setDeadline] = useState(() => initialDeadline(task));
+  const [fixedStart, setFixedStart] = useState(() => initialFixedStart(task));
   const [minutes, setMinutes] = useState(() => task?.estimated_minutes || 60);
 
   const durationOptions = DURATIONS.includes(minutes) ? DURATIONS : [...DURATIONS, minutes].sort((a, b) => a - b);
@@ -76,18 +103,52 @@ function TaskForm({ task, onClose, onSubmit }: Pick<Props, 'task' | 'onClose' | 
 
   const submit = () => {
     if (!canSave) return;
-    onSubmit({ id: task?.id, title: title.trim(), deadlineIso: deadline.toISOString(), minutes });
+    if (mode === 'fixed') {
+      const endDate = new Date(fixedStart.getTime() + minutes * 60000);
+      onSubmit({
+        id: task?.id,
+        title: title.trim(),
+        fixedStartIso: fixedStart.toISOString(),
+        deadlineIso: endDate.toISOString(),
+        minutes,
+      });
+    } else {
+      onSubmit({
+        id: task?.id,
+        title: title.trim(),
+        fixedStartIso: null,
+        deadlineIso: deadline.toISOString(),
+        minutes,
+      });
+    }
     onClose();
   };
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
+      <View style={styles.segmentTrack} role="tablist">
+        <Pressable
+          role="tab"
+          aria-selected={mode === 'edf'}
+          onPress={() => setMode('edf')}
+          style={[styles.segmentBtn, mode === 'edf' && styles.segmentBtnActive]}>
+          <Text style={[styles.segmentText, mode === 'edf' && styles.segmentTextActive]}>Tự xếp giờ rảnh</Text>
+        </Pressable>
+        <Pressable
+          role="tab"
+          aria-selected={mode === 'fixed'}
+          onPress={() => setMode('fixed')}
+          style={[styles.segmentBtn, mode === 'fixed' && styles.segmentBtnActive]}>
+          <Text style={[styles.segmentText, mode === 'fixed' && styles.segmentTextActive]}>Giờ cố định</Text>
+        </Pressable>
+      </View>
+
       <View style={styles.group}>
-        <Text style={styles.label}>Tên đầu việc</Text>
+        <Text style={styles.label}>{mode === 'fixed' ? 'Tên lịch hẹn / Đầu việc' : 'Tên đầu việc'}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="Ví dụ: Nộp báo cáo Kinh tế"
+          placeholder={mode === 'fixed' ? 'Ví dụ: Họp nhóm đồ án' : 'Ví dụ: Nộp báo cáo Kinh tế'}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
           autoFocus={!task}
@@ -97,10 +158,17 @@ function TaskForm({ task, onClose, onSubmit }: Pick<Props, 'task' | 'onClose' | 
         />
       </View>
 
-      <View style={styles.group}>
-        <Text style={styles.label}>Hạn chót</Text>
-        <DeadlineField value={deadline} onChange={setDeadline} />
-      </View>
+      {mode === 'fixed' ? (
+        <View style={styles.group}>
+          <Text style={styles.label}>Thời gian bắt đầu</Text>
+          <DeadlineField value={fixedStart} onChange={setFixedStart} />
+        </View>
+      ) : (
+        <View style={styles.group}>
+          <Text style={styles.label}>Hạn chót</Text>
+          <DeadlineField value={deadline} onChange={setDeadline} />
+        </View>
+      )}
 
       <View style={styles.group}>
         <Text style={styles.label}>Thời lượng dự kiến</Text>
@@ -179,5 +247,23 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: colors.blue, borderColor: colors.blue },
   pillText: { fontSize: 12.5, fontFamily: fonts.semibold, color: colors.textSecondary },
   pillTextActive: { color: '#fff' },
+  segmentTrack: {
+    flexDirection: 'row',
+    backgroundColor: colors.subtle,
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  segmentBtnActive: {
+    backgroundColor: colors.surface,
+  },
+  segmentText: { fontSize: 12.5, fontFamily: fonts.semibold, color: colors.textSecondary },
+  segmentTextActive: { color: colors.text },
   btnRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
 });

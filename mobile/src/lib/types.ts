@@ -18,6 +18,7 @@ export interface Task {
   source_image_index?: number;
   deadline_raw?: string | null;
   deadline_iso: string | null;
+  fixed_start_iso?: string | null;
   needs_confirmation?: boolean;
   question?: string | null;
   options?: ClarifyOption[];
@@ -39,6 +40,7 @@ export interface ScheduledEvent {
   durationMinutes: number;
   sessionIndex: number;
   totalSessions: number;
+  isFixed?: boolean;
   isUrgent: boolean;
   isPastDeadline: boolean;
 }

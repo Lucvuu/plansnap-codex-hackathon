@@ -18,6 +18,7 @@ export interface TaskInput {
   id?: string;
   title: string;
   deadlineIso: string | null;
+  fixedStartIso?: string | null;
   minutes: number;
 }
 
@@ -150,13 +151,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const result = await VisionAgent.extractTasks(images, apiKey, model);
       const newTasks = result.tasks.map((t) => ({ ...t, completed: Boolean(t.completed) }));
-      setTasks(newTasks);
+      setTasks((prev) => {
+        const merged = [...prev];
+        for (const nt of newTasks) {
+          const ntKey = `${(nt.title || '').trim().toLowerCase()}|${nt.deadline_iso || ''}`;
+          const idx = merged.findIndex(
+            (ex) => `${(ex.title || '').trim().toLowerCase()}|${ex.deadline_iso || ''}` === ntKey,
+          );
+          if (idx >= 0) {
+            merged[idx] = { ...merged[idx], ...nt, id: merged[idx].id };
+          } else {
+            merged.push(nt);
+          }
+        }
+        return merged;
+      });
+      setImages([]);
       touchClock();
       const sec = (result.elapsedMs / 1000).toFixed(1);
       toast(
         hasUsableKey(apiKey)
-          ? `Đã trích xuất ${newTasks.length} đầu việc (${sec}s · ${result.modelUsed})`
-          : `Demo: ${newTasks.length} đầu việc được xếp lịch (${sec}s)`,
+          ? `Đã thêm ${newTasks.length} đầu việc (${sec}s · ${result.modelUsed})`
+          : `Demo: đã thêm ${newTasks.length} đầu việc (${sec}s)`,
         'success',
       );
       return true;
@@ -184,17 +200,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const upsertTask = useCallback(
-    ({ id, title, deadlineIso, minutes }: TaskInput) => {
+    ({ id, title, deadlineIso, fixedStartIso, minutes }: TaskInput) => {
       const duration = Math.max(15, Number(minutes) || 60);
       if (id) {
         setTasks((prev) =>
           prev.map((t) =>
             t.id === id
-              ? { ...t, title, deadline_iso: deadlineIso, estimated_minutes: duration, needs_confirmation: false }
+              ? {
+                  ...t,
+                  title,
+                  deadline_iso: deadlineIso,
+                  fixed_start_iso: fixedStartIso ?? null,
+                  estimated_minutes: duration,
+                  needs_confirmation: false,
+                }
               : t,
           ),
         );
-        toast('Đã cập nhật đầu việc.', 'success');
+        toast(fixedStartIso ? 'Đã cập nhật lịch cố định.' : 'Đã cập nhật đầu việc.', 'success');
       } else {
         setTasks((prev) => [
           ...prev,
@@ -202,13 +225,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: `manual-${Date.now()}`,
             title,
             deadline_iso: deadlineIso,
+            fixed_start_iso: fixedStartIso ?? null,
             estimated_minutes: duration,
-            source_quote: 'Thêm thủ công',
+            source_quote: fixedStartIso ? 'Lịch cố định' : 'Thêm thủ công',
             needs_confirmation: false,
             completed: false,
           },
         ]);
-        toast('Đã thêm đầu việc mới.', 'success');
+        toast(fixedStartIso ? 'Đã thêm lịch cố định mới.' : 'Đã thêm đầu việc mới.', 'success');
       }
       touchClock();
     },

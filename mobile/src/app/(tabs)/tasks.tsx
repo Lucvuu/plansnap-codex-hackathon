@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/Icon';
 import { TaskSheet } from '@/components/TaskSheet';
 import { EmptyState, PillButton, ScreenHeading } from '@/components/ui';
-import { formatClarifyOptionLabel, formatDeadlineLabel } from '@/lib/format';
+import { formatClarifyOptionLabel, formatDateTimeLabel, formatDeadlineLabel } from '@/lib/format';
 import { tapHaptic } from '@/lib/haptics';
 import type { Task } from '@/lib/types';
 import { useApp } from '@/state/AppStore';
@@ -129,7 +129,9 @@ function TaskRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const dl = formatDeadlineLabel(task.deadline_iso);
+  const dl = task.fixed_start_iso
+    ? { text: `Cố định · ${formatDateTimeLabel(task.fixed_start_iso)}`, urgent: false }
+    : formatDeadlineLabel(task.deadline_iso);
   const done = Boolean(task.completed);
   return (
     <View style={[styles.item, done && styles.itemDone]}>

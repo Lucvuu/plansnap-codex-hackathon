@@ -27,7 +27,7 @@
   1. **Tem thời gian tương đối:** Khi giảng viên nhắn 'thứ 6 tuần sau nộp', OCR chỉ đọc được chữ 'thứ 6 tuần sau', nhưng không biết là ngày nào. Vision LLM có khả năng liên kết tem thời gian gửi tin nhắn Zalo (ví dụ: 'Hôm qua lúc 16:45') với câu nói để suy luận ra ngày tuyệt đối.
   2. **Cấu trúc lộn xộn:** Slide bài giảng, ảnh bảng trắng họp nhóm và chữ viết tay không có định dạng cố định để viết Regex.
   3. **Phát hiện sự mơ hồ:** Chỉ có LLM mới đánh giá được mức độ tin cậy để kích hoạt thẻ hỏi lại 1-chạm (Human-in-the-Loop) khi deadline không rõ ràng.  
-  *Về chi phí:* Với Gemini 2.5 Flash, chi phí chỉ khoảng $0.0003 cho 3 ảnh (chưa tới 10 đồng VNĐ), hoàn toàn khả thi về mặt kinh tế."*
+  *Về chi phí:* Với dòng model Flash (`gemini-3-flash-preview`, kèm fallback `gemini-3.5-flash`), chi phí chỉ ở mức vài đồng VNĐ cho mỗi lượt quét 1–3 ảnh, hoàn toàn khả thi để triển khai miễn phí giới hạn (freemium) cho sinh viên."*
 
 ---
 
@@ -52,13 +52,10 @@
 
 ### Câu hỏi 5: "Làm sao các bạn chứng minh sinh viên thật sự có nhu cầu này chứ không phải do nhóm tự nghĩ ra?"
 * **Trả lời sắc bén của Speaker:**  
-  *"Thưa BGK, nhóm không suy đoán mà đã đi khảo sát thực tế với **30 sinh viên phỏng vấn sâu 1-on-1** tại 6 trường ĐH lớn ở Hà Nội (Bách Khoa, Kinh tế Quốc dân, Ngoại thương, Quốc gia, Học viện Ngân hàng, Thương mại) cùng **156 sinh viên tham gia khảo sát định lượng diện rộng** vào ngày 12/11 vừa qua:**
-  - **100%** sinh viên thừa nhận họ lưu trữ deadline bằng cách chụp ảnh màn hình.
-  - Trung bình mỗi sinh viên có **35.2 ảnh screenshot chứa deadline** nằm lẫn lộn trong thư viện ảnh mỗi tháng (nhóm đã trực tiếp kiểm tra hơn 1.000 bức ảnh thư viện của sinh viên).
-  - **96.7%** từng nộp bài sát giờ (< 2 tiếng trước hạn) vì không biết khi nào cần bắt đầu làm.
-  - **86.7%** từng nhầm hạn hoặc bỏ sót bài do các mốc thời gian mơ hồ ('thứ 6 tuần sau', 'buổi học tới').
-  - Đã có **42 sinh viên dùng thử bản Beta thực tế**, bóc tách **218 đầu việc** với tỷ lệ duyệt lịch đạt **92.8%**.
-  - Trong thử nghiệm đối chứng Benchmark A/B với 5 bạn: Nhập tay mất **7 phút 45 giây**, dùng PlanSnap chỉ mất **48 giây** (nhanh hơn gấp 9.7 lần). Toàn bộ số liệu và trích dẫn nguyên văn được lưu trong tài liệu `docs/09_Bieu_mau_Khao_sat_va_Dataset.md` của nhóm."*
+  *"Thưa BGK, nhóm xuất phát từ trải nghiệm thực tế và khảo sát sinh viên (xem chi tiết quy trình và bảng tổng hợp trong `docs/09_Bieu_mau_Khao_sat_va_Dataset.md`):
+  - Thói quen phổ biến là chụp ảnh màn hình tin nhắn Zalo, cổng LMS, slide hoặc bảng trắng rồi để lẫn trong thư viện ảnh; khi mở lại gặp các mốc thời gian tương đối ('thứ 6 tuần sau', 'buổi học tới') nên dễ nhầm ngày hoặc dồn việc sát hạn.
+  - Theo tổng hợp bảng khảo sát trong `docs/09_Bieu_mau_Khao_sat_va_Dataset.md`: **94.2%** lưu deadline bằng chụp màn hình, **89.1%** từng nộp sát giờ vì chưa xếp lịch trước, và **82.7%** từng nhầm hạn do mốc thời gian mơ hồ.
+  - Khi thử nghiệm trực tiếp trên mẫu thông báo và chữ viết tay: thay vì gõ tay từng sự kiện vào Lịch (1–2 phút/việc), PlanSnap bóc tách kèm câu trích dẫn nguồn và xuất thẳng `.ics` chỉ qua 1–2 chạm."*
 
 ---
 
@@ -77,8 +74,8 @@
 * **Trả lời sắc bén của Speaker:**  
   *"Nhóm tiếp cận chính xác qua **Kênh Lớp trưởng và Ban Cán Sự Lớp**:**
   1. Lớp trưởng là người nhận thông báo từ giảng viên và đăng vào nhóm Zalo lớp. Họ chịu áp lực lớn nhất khi cả lớp quên nộp bài tập lớn.
-  2. Chúng em đưa PlanSnap cho Lớp trưởng: Lớp trưởng quét ảnh đề cương, tạo kế hoạch mẫu và chia sẻ đường link lịch cho cả lớp.
-  3. **Vòng lan truyền (Viral Loop):** Khi một sinh viên bóc tách deadline bài tập nhóm, bạn ấy chia sẻ link kế hoạch cho 4 bạn cùng nhóm để phân chia tiến độ. 4 bạn này mở link và tải app về máy. Đây là kênh phân phối 0 đồng với hệ số lan truyền tự nhiên K-factor > 1."*
+  2. Chúng em đưa PlanSnap cho Lớp trưởng: Lớp trưởng quét ảnh đề cương/thông báo, tạo lịch hoàn chỉnh rồi **gửi trực tiếp file lịch `.ics` qua bảng chia sẻ hệ thống vào nhóm Zalo lớp**.
+  3. **Lan truyền tự nhiên theo nhóm môn học:** Khi sinh viên nhận file `.ics` hoặc làm bài tập lớn theo nhóm 3–5 người, các thành viên thấy sự tiện lợi và cài app qua APK / link tải để tự quét phần việc cá nhân của mình."*
 
 ---
 
@@ -107,6 +104,6 @@
 
 ### Câu hỏi 10: "Phần nào các bạn đã làm trước, và phần nào các bạn làm trong ngày hôm nay tại Hackathon?"
 * **Trả lời sắc bén của Speaker:**  
-  *"Thưa BGK, nhóm tuân thủ tuyệt đối quy định của BTC và đã đóng dấu commit tag `pre-hackathon` trên Git repository trước ngày 14/11:
-  - **Phần chuẩn bị trước (Đã gắn Git Tag):** Khảo sát 30 sinh viên phỏng vấn sâu 1-on-1 và 156 sinh viên khảo sát diện rộng, thu thập bộ test 40 screenshot che PII, dựng bản web app PWA và bản thử nghiệm Beta với 42 người dùng thực tế (218 đầu việc).
-  - **Phần phát triển trực tiếp tại sự kiện:** Chuyển toàn bộ ứng dụng sang app native React Native + Expo và build APK, tối ưu độ trễ và tích hợp kịch bản demo chụp chữ viết tay của BGK."*
+  *"Thưa BGK, nhóm phân tách rạch ròi bằng Git tag **`pre-hackathon`** (đóng tại commit `9b44998`, đêm 13/11 – rạng sáng 14/11) trên repository công khai:
+  - **Phần chuẩn bị trước (`<= pre-hackathon`):** Ý tưởng, bộ tài liệu PRD/kiến trúc (`docs/`), thiết kế luồng UI và bản prototype web PWA (`app/`).
+  - **Phần xây dựng trực tiếp trong ngày 14/11:** Hoàn thiện System Prompt 6 quy tắc kèm mốc giờ địa phương, tính năng **+ Thêm lịch** (nối tiếp từ ảnh chụp hoặc thêm thủ công giờ cố định / tự xếp EDF), chuyển đổi toàn bộ sang **app native React Native + Expo (`mobile/`)** với Keystore/AsyncStorage, nén ảnh trên máy, Share Sheet xuất `.ics`, bộ 17 unit test đối chiếu 500 kịch bản ngẫu nhiên và cấu hình build Android APK qua EAS (`@elysszxje/plansnap`)."*
