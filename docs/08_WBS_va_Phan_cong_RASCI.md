@@ -15,9 +15,9 @@
 | Mã vai trò | Chức danh đảm nhiệm | Đại diện nhân sự | Trách nhiệm chính |
 |:---:|---|---|---|
 | **PM** | **Product Lead / PM** | Vũ Thế Lực | Quản trị tiến độ, bám sát thang điểm BTC, kịch bản pitch deck, quan hệ BTC, tổng hợp bằng chứng. |
-| **TL** | **Tech Lead / System Architect** | Thành viên Kỹ thuật 1 | Kiến trúc hệ thống, PWA Core, IndexedDB persistence, chuẩn bị khung Capacitor `.apk` dự phòng. |
+| **TL** | **Tech Lead / System Architect** | Thành viên Kỹ thuật 1 | Kiến trúc hệ thống, app native React Native + Expo (`mobile/`), lưu trữ cục bộ, build APK qua EAS. *(Trước 14/11: PWA Core, IndexedDB.)* |
 | **AI** | **AI / Backend Engineer** | Thành viên Kỹ thuật 2 | Vision LLM API (Gemini Flash), prompt engineering tiếng Việt, Structured Output schema, auto-retry logic. |
-| **FE** | **Frontend / UI-UX Developer** | Thành viên Kỹ thuật 3 | Mobile PWA UI, module Canvas nén ảnh client, giao diện duyệt việc, module xuất `.ics`. |
+| **FE** | **Frontend / UI-UX Developer** | Thành viên Kỹ thuật 3 | Giao diện app mobile, nén ảnh trên máy, giao diện duyệt việc, module xuất `.ics`. |
 | **UR** | **User Researcher / Growth** | Thành viên Hỗ trợ / Cả nhóm | Phỏng vấn sâu 30 SV 1-on-1, khảo sát diện rộng 156 SV, thu thập 40 screenshot dataset che PII, chạy benchmark đối chứng, thu feedback beta 42 users. |
 
 ---
@@ -55,11 +55,14 @@
 | 03.5 | Thuật toán xếp lịch xác định (Code thuần EDF) | 15h00 13/11 | Thuật toán xếp khung rảnh chừa buffer | C | **A/R** | C | S | I |
 | 03.6 | UI duyệt việc + Thẻ hỏi lại mốc mơ hồ 1-chạm | 17h00 13/11 | Màn hình tương tác mobile mượt mà | I | S | C | **A/R** | I |
 | 03.7 | Module xuất lịch iCalendar (`.ics`) | 19h00 13/11 | Tệp `.ics` mở trực tiếp trong app Lịch | I | C | I | **A/R** | I |
-| 03.8 | Bọc Capacitor tạo file `.apk` dự phòng | 21h00 13/11 | File cài đặt `.apk` sẵn sàng trong máy | I | **A/R** | I | S | I |
+| 03.8 | ~~Bọc Capacitor tạo file `.apk` dự phòng~~ — hủy, thay bằng 03.9 (DEC-08) | 21h00 13/11 | — | I | **A/R** | I | S | I |
+| 03.9 | Chuyển PWA sang app native React Native + Expo (`mobile/`) | 14h15 14/11 | Đủ tính năng như PWA, 16 unit test pass — **Đã xong (commit `4df37e0`)** | I | **A/R** | C | S | I |
+| 03.10 | Build APK (EAS profile `preview`) và cài lên 2 máy demo Android | 14/11, trước tổng duyệt | File `.apk` trong laptop + đã cài trên Phone A, Phone B | I | **A/R** | I | S | I |
 | **WBS-04** | **Kiểm thử & Đóng gói Pre-hackathon** | | | | | | | |
 | 04.1 | Thử nghiệm Swipe-kill 20 lần trên 2 điện thoại demo | 22h00 12/11 | Video ghi hình 20 lần mở lại giữ nguyên trạng thái | **A** | R | I | R | I |
 | 04.2 | Kiểm thử AI trên bộ test 40 ảnh (Đo độ chính xác) | 20h00 13/11 | Bảng đo độ chính xác trích việc, trích ngày | C | I | **A/R** | I | S |
 | 04.3 | Đóng dấu Git Commit Tag `pre-hackathon` | 23h59 13/11 | Tag git sạch trên GitHub chứng minh quy chế | A | **A/R** | I | I | I |
+| 04.4 | Chạy lại Swipe-kill 20 lần + luồng AI live trên bản APK native | 14/11, sau 03.10 | Bảng kết quả 20/20 trên APK (thay kết quả PWA ngày 12/11) | **A** | R | R | R | I |
 | **WBS-05** | **Thuyết trình & Demo ngày 14/11 (Hackathon Day)** | | | | | | | |
 | 05.1 | Hoàn thiện Slide Pitch Deck 8 trang | 10h00 14/11 | File slide hoàn chỉnh có đầy đủ số liệu thật | **A/R** | I | I | I | S |
 | 05.2 | Tổng duyệt Kịch bản Demo 3 lần trên mạng 4G | 11h30 14/11 | Demo nhuần nhuyễn từng giây (dưới 3 phút) | **A** | R | R | R | S |
@@ -86,6 +89,9 @@
       │
       ▼
 [14/11 - Sáng]: Hoàn thiện tính năng tại chỗ + Test 3 lần kịch bản Demo trên 4G
+      │
+      ▼
+[14/11 - 14h15]: Chốt chuyển sang app native Expo (DEC-08) ➔ Build APK ➔ Cài 2 máy ➔ Swipe-kill 20 lần trên APK
       │
       ▼
 [14/11 - Chiều]: THỰC CHIẾN PITCH & DEMO LIVE 100% TRÊN SÂN KHẤU!

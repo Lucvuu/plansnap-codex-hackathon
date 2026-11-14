@@ -71,7 +71,7 @@
 
 * **Nội dung hiển thị trên màn chiếu:** Phản chiếu trực tiếp màn hình điện thoại thật của Demo Operator.
 * **Các mốc hành động bắt buộc:**
-  1. **Đóng hẳn ứng dụng (Swipe Kill) trong App Switcher** ➔ Chạm icon mở lại từ màn hình chính ➔ Dữ liệu IndexedDB nguyên vẹn.
+  1. **Đóng hẳn ứng dụng (Swipe Kill) trong App Switcher** ➔ Chạm icon mở lại từ màn hình chính ➔ Dữ liệu lưu cục bộ còn nguyên vẹn.
   2. Nạp 3 ảnh thật ➔ AI live trích xuất việc kèm câu trích nguồn ➔ Chạm giải quyết điểm mơ hồ.
   3. **KHOẢNH KHẮC "WOW":** Mời Ban Giám khảo viết tay 1 việc bất kỳ lên giấy ➔ Chụp trực tiếp bằng camera ➔ AI bóc tách và xếp chèn vào lịch ngay tức thì.
   4. Bấm xuất tệp `.ics` ➔ Mở ứng dụng Lịch mặc định trên điện thoại.
@@ -100,9 +100,9 @@
     - **92.8%** kế hoạch được người dùng chấp nhận đưa vào lịch (39/42 bạn).
   - **Kênh tiếp cận người dùng đầu tiên (Chi phí 0 đồng):**
     - **Kênh Lớp trưởng & Ban cán sự:** Họ là người trực tiếp thông báo bài tập vào nhóm Zalo lớp. Họ dùng PlanSnap tạo kế hoạch mẫu và chia sẻ ngược lại cho cả lớp.
-    - **Vòng lan truyền (Viral Loop):** Một sinh viên tạo kế hoạch bài tập nhóm ➔ gửi link cho 4 bạn cùng nhóm ➔ 4 bạn mở ra và cài đặt PWA chỉ trong 5 giây.
+    - **Vòng lan truyền (Viral Loop):** Một sinh viên tạo kế hoạch bài tập nhóm ➔ gửi link cho 4 bạn cùng nhóm ➔ 4 bạn mở link tải app về máy.
 * **Lời thoại (3:55 – 4:25):**  
-  *"Về khả năng mở rộng thị trường: Thay vì nói 'ai cũng cần', chúng tôi tập trung chính xác vào kênh Lớp trưởng và Ban cán sự tại các trường đại học Hà Nội. Tính đến hôm nay, bản beta của chúng tôi đã có 42 sinh viên sử dụng thực tế và tạo ra 218 đầu việc học tập với tỷ lệ duyệt lịch đạt 92.8%. Lợi thế của PWA là không cần qua App Store phức tạp, sinh viên có thể cài đặt ngay sau 3 giây từ link chia sẻ của bạn bè."*
+  *"Về khả năng mở rộng thị trường: Thay vì nói 'ai cũng cần', chúng tôi tập trung chính xác vào kênh Lớp trưởng và Ban cán sự tại các trường đại học Hà Nội. Tính đến hôm nay, bản beta của chúng tôi đã có 42 sinh viên sử dụng thực tế và tạo ra 218 đầu việc học tập với tỷ lệ duyệt lịch đạt 92.8%. Bản beta chạy dạng web app nên sinh viên dùng ngay từ link chia sẻ; hôm nay chúng tôi đã chuyển PlanSnap thành app native (Android và iOS chung một mã nguồn), bản Android phát qua link tải APK."*
 
 ---
 
@@ -121,7 +121,7 @@
 * **Nội dung hiển thị:**
   - **Cam kết minh bạch quy chế:**
     - Git commit tag **`pre-hackathon`** được đóng dấu trước ngày thi.
-    - Rõ ràng ranh giới: Phần làm trước (Khảo sát, dataset, PWA shell) vs Phần làm tại chỗ (Thuật toán xếp lịch, module hỏi lại, tối ưu live demo).
+    - Rõ ràng ranh giới: Phần làm trước (Khảo sát, dataset, bản web app PWA dùng cho beta) vs Phần làm tại chỗ ngày 14/11 (Chuyển sang app native React Native + Expo, build APK, tối ưu live demo).
   - **Thông điệp kết thúc:** *PlanSnap – Làm chủ thời gian từ những bức ảnh chụp.*
 * **Lời thoại (4:45 – 5:00):**  
   *"Chúng tôi tuân thủ tuyệt đối quy định của Hackathon với commit tag pre-hackathon minh bạch ranh giới phát triển. technoComplex tin rằng: Quản lý thời gian không nên là một gánh nặng phải gõ từng chữ, mà phải đơn giản như một cái chạm chụp ảnh. Xin trân trọng cảm ơn Ban Giám khảo!"*

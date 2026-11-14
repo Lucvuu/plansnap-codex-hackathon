@@ -6,7 +6,7 @@
 | **Dự án** | **PlanSnap** (Capture → Plan) |
 | **Sự kiện** | Codex Community Hackathon Hà Nội (14/11/2026) |
 | **Mục tiêu điểm số** | **40/40 điểm Tiêu chí 1** (Ưu tiên phá hòa số 1 của BTC) |
-| **Thiết bị chính** | Điện thoại thật (Cài PWA Standalone trên màn hình chính) |
+| **Thiết bị chính** | Điện thoại Android thật, cài app native PlanSnap (React Native + Expo) từ file APK — xem DEC-08 |
 | **Phân vai** | 01 Speaker (Thuyết trình) + 01 Demo Operator (Thao tác tay trên máy) |
 | **Nguồn quy chuẩn** | [00_Thang_diem_BTC.md](file:///d:/Codex%20hackathon%20HN/docs/00_Thang_diem_BTC.md) |
 
@@ -18,7 +18,8 @@
 > Bất kỳ sơ suất kỹ thuật nào làm ứng dụng không mở lại được hoặc phải dùng video thay thế đều sẽ bị Ban Giám khảo chấm **0 điểm ngay lập tức** theo quy chế.
 
 - [ ] **Điện thoại demo chính (Phone A):**
-  - Đã cài đặt PlanSnap ra màn hình chính dạng standalone (không hiển thị thanh địa chỉ URL của trình duyệt).
+  - Đã cài bản APK PlanSnap mới nhất (EAS profile `preview`), mở từ icon trên màn hình chính. Không demo qua Expo Go hay trình duyệt.
+  - Đã nhập Gemini API Key trong tab Cài đặt (thiếu key thì ảnh thật không chạy AI).
   - Pin sạc trên 85%, tắt chế độ Tiết kiệm pin (Low Power Mode).
   - Bật chế độ **"Không làm phiền" (Do Not Disturb)** để chặn mọi tin nhắn, cuộc gọi riêng tư bật lên màn hình.
   - Tải sẵn vào thư viện ảnh: 5 screenshot thực tế (nhóm Zalo lớp, ảnh slide đề cương, ảnh chụp màn hình LMS).
@@ -26,8 +27,8 @@
   - Cấu hình giống hệt Phone A, kết nối sẵn mạng, đặt cạnh bàn thuyết trình.
 - [ ] **Đường truyền mạng độc lập:**
   - Chuẩn bị **02 bộ phát Wi-Fi 4G di động** riêng biệt của 2 nhà mạng khác nhau (1 SIM Viettel, 1 SIM VinaPhone). Tuyệt đối không phụ thuộc vào Wi-Fi hội trường.
-- [ ] **Khởi động ấm Backend (Warm-up Backend):**
-  - Đúng **03 phút trước khi lên sân khấu**, thực hiện một lệnh ping gửi 1 ảnh test lên serverless API để kích hoạt container, loại bỏ hoàn toàn hiện tượng Cold Start.
+- [ ] **Gọi thử Gemini (Warm-up):**
+  - Đúng **03 phút trước khi lên sân khấu**, vào tab Cài đặt bấm **"Kiểm tra"** để gọi thử Gemini API, xác nhận key và model còn hoạt động.
 - [ ] **Đạo cụ cho màn "Wow":**
   - Chuẩn bị sẵn 01 tập giấy ghi chú trắng và 01 bút dạ ngòi to màu đen sẵn sàng đưa cho Ban Giám khảo.
 
@@ -56,7 +57,7 @@
   4. Quay về màn hình chính điện thoại, **chạm vào biểu tượng (icon) PlanSnap** trên màn hình chính.
   5. Ứng dụng khởi chạy toàn màn hình trong 0.3 giây, hiển thị ngay giao diện chính với các dữ liệu đã lưu từ trước.
 * **Lời thoại của Speaker:**  
-  *"Ứng dụng khởi động lại ngay tức thì từ icon màn hình chính, toàn bộ trạng thái và cấu hình khung giờ rảnh được bảo toàn nguyên vẹn nhờ kiến trúc IndexedDB cục bộ."*
+  *"Ứng dụng khởi động lại ngay tức thì từ icon màn hình chính, toàn bộ đầu việc và cấu hình khung giờ rảnh được bảo toàn nguyên vẹn nhờ dữ liệu lưu cục bộ trên máy."*
 
 ---
 
@@ -104,7 +105,7 @@
 ### Giai đoạn 5: Xuất lịch ra ứng dụng di động & Kết thúc (2:40 – 3:00)
 * **Thao tác của Demo Operator:**  
   1. Bấm nút **"Xuất vào Lịch"**.
-  2. Điện thoại hiển thị hộp thoại mở tệp iCalendar `.ics`.
+  2. Bảng chia sẻ của Android hiện ra → chọn ứng dụng Lịch đã thử trước trên máy demo (mở được tệp `.ics`).
   3. Ứng dụng Lịch mặc định của điện thoại (Apple Calendar / Google Calendar) tự động mở ra, hiển thị các khối thời gian làm việc màu xanh đã được xếp khớp hoàn hảo với khung giờ rảnh, có chuông nhắc trước 15 phút.
 * **Lời thoại của Speaker:**  
   *"Toàn bộ quá trình từ 4 bức ảnh lộn xộn đến một lịch làm việc hoàn chỉnh trên điện thoại diễn ra trong chưa đầy 1 phút. Không cần gõ phím, không sợ sót deadline. Đó là PlanSnap!"*
@@ -118,5 +119,5 @@
 | **Mạng 4G của SIM 1 bị ngắt kết nối** | AI báo lỗi mạng | Demo Operator chuyển sang Wi-Fi phát từ SIM 2 (mất 2 giây), bấm nút "Thử lại". Tuyệt đối không bật video thay thế. |
 | **API Vision phản hồi chậm (> 10s)** | Khoảng lặng chết trên sân khấu | Speaker duy trì nói: giải thích cơ chế nén ảnh và lý do tại sao AI phải đọc kỹ tem thời gian trong ảnh Zalo để đối chiếu hạn chót. |
 | **Máy chính bị lag hoặc hết pin đột ngột** | Không mở lại được app | Chuyển ngay sang Phone B dự phòng đặt sẵn trên bàn, bật màn hình tiếp tục demo từ bước chụp ảnh. |
-| **BGK hỏi: "Đây có phải là trình duyệt web không?"** | Bị nghi ngờ demo bằng trình duyệt | Speaker trả lời ngay: *"Thưa BGK, đây là ứng dụng được cài đặt trực tiếp lên màn hình chính qua công nghệ Progressive Web App với Service Worker độc lập, chạy toàn màn hình (standalone) và lưu trữ dữ liệu bền vững qua IndexedDB cục bộ, đáp ứng đầy đủ tiêu chuẩn ứng dụng di động thực tế."* |
+| **BGK hỏi: "Đây có phải là trình duyệt web không?"** | Bị nghi ngờ demo bằng trình duyệt | Speaker trả lời ngay: *"Thưa BGK, đây là ứng dụng native viết bằng React Native + Expo, cài trực tiếp lên điện thoại từ file APK. Dữ liệu lưu cục bộ trên máy, API key nằm trong kho bảo mật Keystore của Android."* Operator có thể mở Cài đặt hệ thống → Ứng dụng → PlanSnap để BGK thấy app đã cài. |
 

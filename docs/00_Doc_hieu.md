@@ -10,7 +10,7 @@
 ## a) Tóm tắt sản phẩm 5 dòng
 1. **Người dùng đầu tiên:** Sinh viên năm 2–4 tại Hà Nội học nhiều môn, có bài tập nhóm, đi làm thêm, nhận deadline rải rác qua nhiều kênh.
 2. **Vấn đề:** Deadline và công việc đến qua nhóm chat Zalo/Messenger, ảnh chụp slide, bảng trắng, LMS bị trôi và lưu tản mát trong thư viện ảnh, tốn thời gian tổng hợp thủ công dẫn đến quên việc hoặc làm sát giờ.
-3. **Giải pháp:** Ứng dụng di động (PWA cài màn hình chính/standalone) cho phép chọn 1–5 ảnh screenshot hoặc chụp trực tiếp → AI tự động bóc tách việc, deadline, xếp lịch khớp với khung giờ rảnh và xuất sang Calendar sau khi người dùng duyệt.
+3. **Giải pháp:** Ứng dụng di động native (React Native + Expo, cài bằng APK — từ 14/11, xem DEC-08; bản beta trước đó là PWA) cho phép chọn 1–5 ảnh screenshot hoặc chụp trực tiếp → AI tự động bóc tách việc, deadline, xếp lịch khớp với khung giờ rảnh và xuất sang Calendar sau khi người dùng duyệt.
 4. **Luồng AI chính:** Multi-modal AI Agent đọc ảnh → trích xuất việc + deadline tuyệt đối kèm câu trích dẫn nguồn (`source_quote`) → hỏi lại các mốc thời gian mơ hồ (chọn nhanh) → thuật toán code thuần xếp lịch vào khung rảnh chừa buffer an toàn → người dùng duyệt/chỉnh sửa → xuất ra `.ics` hoặc Google Calendar.
 5. **Khoảnh khắc "wow" khi demo:** Mời trực tiếp một vị Giám khảo viết tay một việc bất kỳ kèm hạn chót lên giấy, dùng app chụp trực tiếp tại chỗ, AI bóc tách ngay lập tức và tự động xếp chèn vào lịch tuần trước mắt BGK (chứng minh live 100%, không kịch bản dựng sẵn).
 
@@ -27,7 +27,7 @@
 
 | STT | Phần trong bản phác thảo | Phục vụ tiêu chí BTC | Mức điểm nhắm tới | Bằng chứng phải trình ra ngày 14/11 | Tình trạng |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | **PWA cài ra màn hình chính (standalone, manifest, icon) + lưu IndexedDB cục bộ** | Tiêu chí 1: Demo AI trên điện thoại thật (Tối đa 40đ) | 40 điểm | Thao tác vuốt đóng hẳn app trong App Switcher trước mặt BGK, bấm icon trên màn hình chính mở lại, kế hoạch và dữ liệu vẫn còn nguyên vẹn. | **Đã hoàn thiện** (App v1.1 chạy mượt, hỗ trợ IndexedDB) |
+| 1 | **App native React Native + Expo cài bằng APK + lưu cục bộ (AsyncStorage)** *(thay PWA từ 14/11 — DEC-08)* | Tiêu chí 1: Demo AI trên điện thoại thật (Tối đa 40đ) | 40 điểm | Thao tác vuốt đóng hẳn app trong App Switcher trước mặt BGK, bấm icon trên màn hình chính mở lại, kế hoạch và dữ liệu vẫn còn nguyên vẹn. | **Đã port xong** (commit `4df37e0`); **cần build APK và test lại swipe-kill** |
 | 2 | **Chọn 1–5 ảnh từ thư viện/chụp ảnh, gọi Multi-modal AI live trích xuất việc + deadline + quote** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Gọi API live trên mạng 4G trước mặt BGK, danh sách việc hiện ra kèm câu trích từ ảnh; test live thành công với chữ viết tay của BGK. | **Đã hoàn thiện** (Gemini 2.5 Flash + Presets SVG dự phòng) |
 | 3 | **Hỏi lại chỗ mơ hồ (`ask_user`) bằng nút chọn nhanh khi gặp hạn chót tương đối** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Pop-up hiện lựa chọn ngày cụ thể (vd: "20/11 hay 27/11?"), người dùng bấm chọn là cập nhật ngay danh sách việc trước khi xếp lịch. | **Đã hoàn thiện** (Human-in-the-Loop 1-chạm) |
 | 4 | **Xếp lịch code thuần vào khung rảnh + Màn duyệt việc + Xuất lịch `.ics` / Google Calendar** | Tiêu chí 1 (40đ) & Tiêu chí 2 (35đ) | 40 điểm (TC1)<br>35 điểm (TC2) | Lịch làm việc trực quan chừa buffer trước deadline; thao tác duyệt sửa xóa trơn tru; xuất file `.ics` mở được trên Calendar điện thoại. | **Đã hoàn thiện** (Thuật toán EDF buffer 3h + file .ics) |
@@ -47,7 +47,7 @@
 
 | Tiêu chí BTC | Điều kiện 0 điểm nguyên văn của BTC | Cách bản phác thảo đã phòng tránh | Lỗ hổng còn tồn tại & Rủi ro rơi vào 0 điểm |
 | :--- | :--- | :--- | :--- |
-| **Tiêu chí 1** (40 điểm) | *"Không mở lại được ứng dụng trên điện thoại thật, AI không chạy trực tiếp, hoặc chỉ demo bằng trình duyệt, giả lập, ảnh hay video."* | 1. Dùng PWA cài ra màn hình chính, chạy chế độ standalone, ẩn thanh URL.<br>2. Lưu dữ liệu cục bộ bằng IndexedDB.<br>3. Gọi AI live qua 4G, không cache kết quả, chụp ảnh viết tay trực tiếp.<br>4. Không làm "chế độ demo" kết quả soạn sẵn.<br>5. Chuẩn bị 2 máy demo. | **1. RỦI RO CHÍ MẠNG VỀ ĐỊNH NGHĨA:** PWA bản chất vẫn là công nghệ web. Nếu BGK nghiêm ngặt coi PWA là "trình duyệt" → **BỊ 0 ĐIỂM NGAY LẬP TỨC**. Dự phòng Capacitor trong phác thảo chưa làm.<br>**2. BẪY DỰ PHÒNG BẰNG VIDEO:** Nếu demo live bị lỗi mạng/API mà đội hoảng loạn chiếu video quay sẵn thay thế → **BỊ 0 ĐIỂM NGAY LẬP TỨC** theo đúng quy định "chỉ demo bằng ảnh hay video".<br>**3. MẤT DỮ LIỆU KHI MỞ LẠI:** Trên iOS/Safari, nếu đóng app ở chế độ tiết kiệm pin hoặc bộ nhớ đầy, IndexedDB có thể bị xóa hoặc trang bị reload trắng nếu chưa xử lý state khôi phục. |
+| **Tiêu chí 1** (40 điểm) | *"Không mở lại được ứng dụng trên điện thoại thật, AI không chạy trực tiếp, hoặc chỉ demo bằng trình duyệt, giả lập, ảnh hay video."* | 1. Dùng PWA cài ra màn hình chính, chạy chế độ standalone, ẩn thanh URL.<br>2. Lưu dữ liệu cục bộ bằng IndexedDB.<br>3. Gọi AI live qua 4G, không cache kết quả, chụp ảnh viết tay trực tiếp.<br>4. Không làm "chế độ demo" kết quả soạn sẵn.<br>5. Chuẩn bị 2 máy demo. | **1. RỦI RO CHÍ MẠNG VỀ ĐỊNH NGHĨA:** PWA bản chất vẫn là công nghệ web. Nếu BGK nghiêm ngặt coi PWA là "trình duyệt" → **BỊ 0 ĐIỂM NGAY LẬP TỨC**. Dự phòng Capacitor trong phác thảo chưa làm. **→ ĐÃ ĐÓNG 14/11: chuyển sang app native Expo, demo bằng APK (DEC-08).**<br>**2. BẪY DỰ PHÒNG BẰNG VIDEO:** Nếu demo live bị lỗi mạng/API mà đội hoảng loạn chiếu video quay sẵn thay thế → **BỊ 0 ĐIỂM NGAY LẬP TỨC** theo đúng quy định "chỉ demo bằng ảnh hay video".<br>**3. MẤT DỮ LIỆU KHI MỞ LẠI:** Trên iOS/Safari, nếu đóng app ở chế độ tiết kiệm pin hoặc bộ nhớ đầy, IndexedDB có thể bị xóa hoặc trang bị reload trắng nếu chưa xử lý state khôi phục. |
 | **Tiêu chí 2** (35 điểm) | *"Chưa làm rõ người dùng, vấn đề hoặc giá trị sản phẩm."* | 1. Định vị rõ Persona: Linh (SV năm 3 Hà Nội, 6 môn, 2 bài nhóm, làm thêm).<br>2. Liệt kê các pain point cụ thể (Zalo trôi tin, hạn mơ hồ, không biết khi nào làm).<br>3. Chỉ rõ giá trị AI giúp trực tiếp: trích xuất việc từ ảnh và xếp lịch tự động. | **1. NÓI SUÔNG KHÔNG BẰNG CHỨNG:** Toàn bộ pain point trong phác thảo hiện đang là "Giả thuyết". Nếu ngày 14/11 không có số liệu phỏng vấn thật và benchmark thời gian thật, BGK sẽ đánh giá là chưa làm rõ vấn đề có thật.<br>**2. BỊ LOÃNG ĐỐI TƯỢNG:** Nếu trên slide nói lan man sang "người đi làm" hoặc "ai cũng dùng được" mà không tập trung sâu vào sinh viên, giá trị sản phẩm sẽ bị mờ nhạt. |
 | **Tiêu chí 3** (25 điểm) | *"Chưa có hướng tiếp cận người dùng cụ thể, hoặc chỉ khẳng định chung rằng 'ai cũng cần'."* | 1. Nhận diện rõ bẫy "ai cũng cần" sẽ bị 0 điểm.<br>2. Đưa ra kênh tiếp cận cụ thể: Lớp trưởng, Ban cán sự lớp, CLB, nhóm làm bài tập lớn.<br>3. Đặt mục tiêu có 10–20 người dùng thử thực tế trước 14/11. | **1. KÊNH NẰM TRÊN GIẤY:** Nếu không có bằng chứng đã liên hệ hoặc danh sách ban cán sự lớp cụ thể, BGK vẫn xem là "chưa có hướng tiếp cận cụ thể".<br>**2. LẬP LUẬN MỞ RỘNG TOÀN CẦU QUÁ CHUNG CHUNG:** Nếu chỉ nói "mở rộng ra toàn cầu nhờ AI đa ngôn ngữ" mà không nêu được rào cản hành vi (thói quen dùng chat app ở các nước khác ra sao, bản địa hóa thế nào) sẽ bị xem là khẳng định sáo rỗng. |
 
@@ -66,14 +66,14 @@
 ## e) Khoảng trống và Mâu thuẫn trong bản phác thảo
 
 ### 1. Mâu thuẫn trực tiếp với Thang điểm & Quy định BTC
-* **Nguy cơ 0 điểm do nền tảng Web/PWA:** Thang điểm BTC quy định *"0 điểm nếu chỉ demo bằng trình duyệt"*. Bản phác thảo hiện chọn PWA cài màn hình chính. Mặc dù chạy standalone không thanh URL, nhưng về bản chất kỹ thuật vẫn là web runtime. Nhóm đã phòng vệ bằng tài liệu hướng dẫn Capacitor APK và sẵn sàng file `.apk` cài trực tiếp nếu BTC yêu cầu.
+* **Nguy cơ 0 điểm do nền tảng Web/PWA:** Thang điểm BTC quy định *"0 điểm nếu chỉ demo bằng trình duyệt"*. Bản phác thảo hiện chọn PWA cài màn hình chính. Mặc dù chạy standalone không thanh URL, nhưng về bản chất kỹ thuật vẫn là web runtime. **Ngày 14/11 nhóm đã chuyển hẳn sang app native React Native + Expo (DEC-08)**, demo bằng file APK cài trực tiếp; rủi ro này đã đóng.
 * **Quy định "làm trước và làm trong ngày":** Bản phác thảo có nêu quy tắc *"được chuẩn bị trước nhưng phải nói rõ phần làm trước, phần làm trong ngày"*. Nhóm đã chủ động minh bạch tuyệt đối bằng commit tag `pre-hackathon` trên Git và slide số 8.
 
 ### 2. Khoảng trống kỹ thuật (Technical Gaps) & Giải pháp hoàn tất
-* **Thiết bị demo (iOS vs Android):** Đã chốt Android Samsung Galaxy S23 làm máy chính (hỗ trợ PWA standalone toàn màn hình tuyệt đối) và iPhone 14 Pro làm máy phụ (đã kiểm tra IndexedDB hoạt động ổn định).
+* **Thiết bị demo (iOS vs Android):** Android Samsung Galaxy S23 làm máy chính, cài APK native. iPhone 14 Pro **không cài được** bản build nếu không có tài khoản Apple Developer → máy phụ nên là một máy Android thứ hai cài cùng APK (RSK-08).
 * **Model AI & Độ trễ (Latency):** Đã chốt Gemini 2.5 Flash cho độ trễ bóc tách 3 ảnh chỉ 4.5–6.8 giây qua mạng 4G, đảm bảo không có thời gian chết (dead air) trên sân khấu.
-* **Rủi ro Serverless Cold Start:** Đã cấu hình warmup định kỳ và cơ chế Canvas Resize client-side giảm kích thước ảnh từ 4MB xuống 180KB trước khi upload.
-* **Phương án dự phòng an toàn:** Trang bị 02 bộ phát Wi-Fi 4G (Viettel + VinaPhone) và cơ chế Offline Fallback Engine với bộ preset SVG trung thực, không bao giờ dùng video thay thế.
+* **Độ trễ lần gọi AI đầu tiên:** App gọi thẳng Gemini API (không có backend riêng). Trước giờ demo bấm "Kiểm tra" trong Cài đặt để gọi thử; ảnh được nén trên máy (max 1200px, JPEG 0.78) trước khi gửi.
+* **Phương án dự phòng an toàn:** Trang bị 02 bộ phát Wi-Fi 4G (Viettel + VinaPhone). Khi mất mạng app vẫn mở và giữ nguyên dữ liệu; không bao giờ dùng video hay kết quả soạn sẵn thay thế.
 
 ### 3. Tiến độ bù đắp dữ liệu và kiểm chứng (Validation Completed)
 * **Khảo sát người dùng đã hoàn thành:** Đã phỏng vấn sâu 1-on-1 với 30 sinh viên tại 6 trường ĐH lớn và khảo sát diện rộng 156 sinh viên (chuyển 100% giả thuyết thành bằng chứng định lượng vững chắc).
@@ -87,9 +87,9 @@
 
 | Tiêu chí | Mã bằng chứng | Bằng chứng cụ thể đã thu | Chỉ số thực tế đạt được | Người phụ trách | Hạn chót | Tình trạng |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Tiêu chí 1** (40đ) | **BC-1.1** | Kiểm thử đóng app hoàn toàn (swipe kill) rồi mở lại trên cả máy chính và máy phụ | 20/20 lần mở lại giữ nguyên trạng thái qua IndexedDB | Vũ Thế Lực & Tech Lead | 12/11/2026 | **Đã hoàn thành 100%** |
+| **Tiêu chí 1** (40đ) | **BC-1.1** | Kiểm thử đóng app hoàn toàn (swipe kill) rồi mở lại trên cả máy chính và máy phụ | 20/20 lần mở lại giữ nguyên trạng thái qua IndexedDB (bản PWA) | Vũ Thế Lực & Tech Lead | 12/11/2026 → **chạy lại trên APK 14/11** | **Cần chạy lại trên APK native** |
 | **Tiêu chí 1** (40đ) | **BC-1.2** | Log kiểm thử luồng AI live trên mạng 4G với ảnh mới chưa từng nạp vào hệ thống | 100% gọi live thành công, latency trung bình 5.2s (< 8s) | Tech Lead / AI Eng | 12/11/2026 | **Đã hoàn thành 100%** |
-| **Tiêu chí 1** (40đ) | **BC-1.3** | Cấu hình Capacitor APK dự phòng phòng vệ nguy cơ BGK khắt khe với PWA | Sẵn sàng file cấu hình capacitor.config.json & tài liệu APK | Tech Lead | 12/11/2026 | **Đã hoàn thành 100%** |
+| **Tiêu chí 1** (40đ) | **BC-1.3** | App native React Native + Expo build thành APK, cài trên 2 máy demo (thay Capacitor — DEC-08) | File `.apk` từ EAS + app mở được từ icon trên cả 2 máy | Tech Lead | 14/11/2026 | **Đã port code; chờ build APK** |
 | **Tiêu chí 2** (35đ) | **BC-2.1** | Biên bản tổng hợp phỏng vấn sâu sinh viên (trường, số môn, bài nhóm, thói quen lưu deadline) | Đủ 30 sinh viên 1-on-1 (6 trường ĐH) + 156 SV khảo sát diện rộng | Vũ Thế Lực (PM) | 12/11/2026 | **Đã hoàn thành 100%** |
 | **Tiêu chí 2** (35đ) | **BC-2.2** | Số liệu thống kê thư viện ảnh của sinh viên được phỏng vấn | Trung bình 35.2 ảnh screenshot deadline trong 30 ngày | Vũ Thế Lực (PM) | 12/11/2026 | **Đã hoàn thành 100%** |
 | **Tiêu chí 2** (35đ) | **BC-2.3** | Bộ test dataset 40 screenshot thực tế đã làm mờ thông tin cá nhân (PII) | 40 ảnh thật đa dạng (Zalo, LMS, Slide, viết tay), độ chính xác 90.0% | Nhóm dự án | 12/11/2026 | **Đã hoàn thành 100%** |
@@ -103,7 +103,7 @@
 ## g) Danh sách câu hỏi mở (Xếp theo mức độ ảnh hưởng điểm số)
 
 ### Nhóm 1: Câu hỏi gửi Ban Tổ Chức (Quyết định sống còn về điều kiện 0 điểm)
-1. **(Mức độ: Cực kỳ khẩn cấp - Ảnh hưởng 40 điểm Tiêu chí 1):**  
+1. **(Mức độ: Cực kỳ khẩn cấp - Ảnh hưởng 40 điểm Tiêu chí 1) — KHÔNG CÒN CẦN HỎI từ 14/11 (đã chuyển sang app native, DEC-08):**  
    *Câu hỏi:* Ứng dụng Web được cài đặt ra màn hình chính (PWA - Add to Home Screen) chạy ở chế độ toàn màn hình không có thanh địa chỉ trình duyệt (standalone) có được Ban Giám khảo công nhận là *"ứng dụng trên điện thoại thật"* hay không, hay bắt buộc phải là tệp cài đặt native/hybrid (`.apk` trên Android hoặc qua TestFlight trên iOS)?
 2. **(Mức độ: Quan trọng - Ảnh hưởng Tuân thủ quy chế):**  
    *Câu hỏi:* Quy định về việc *"được chuẩn bị trước nhưng phải nói rõ phần làm trước, phần làm trong ngày"* cụ thể ra sao? BTC sẽ kiểm tra ranh giới qua commit Git hay qua khai báo trực tiếp khi thuyết trình? *(Cần đối chiếu email BTC đầy đủ).*
@@ -111,9 +111,9 @@
    *Câu hỏi:* Tổng thời gian thuyết trình và demo trên sân khấu cho mỗi đội là bao nhiêu phút? Thiết bị chiếu tại sự kiện hỗ trợ kết nối gì để phản chiếu màn hình điện thoại (cáp HDMI, AirPlay, Chromecast)?
 
 ### Nhóm 2: Câu hỏi nội bộ nhóm technoComplex (Quyết định kiến trúc & thực thi)
-4. **Chốt thiết bị demo chính thức:** Đội sẽ dùng máy nào làm máy chính, máy nào làm máy phụ (iPhone hay Android)? *(Lưu ý: Nếu dùng iPhone, phải kiểm tra cực kỳ kỹ cơ chế IndexedDB không bị Safari reset khi đóng app).*
+4. **Chốt thiết bị demo chính thức:** Đội sẽ dùng máy nào làm máy chính, máy nào làm máy phụ (iPhone hay Android)? *(Lưu ý: bản iOS cài đặt cần tài khoản Apple Developer / TestFlight — xem RSK-08).*
 5. **Chốt Model Vision API & Ngân sách:** Đội chọn API của bên nào (Gemini 2.5 Flash, Claude 3.5 Haiku, hay OpenAI GPT-4o-mini)? Thời gian phản hồi trung bình (latency) khi upload 3 ảnh là bao nhiêu giây?
-6. **Phương án bọc Native dự phòng:** Nếu BTC không trả lời kịp hoặc không chấp nhận PWA, ai sẽ phụ trách dựng khung Capacitor bọc PWA thành file `.apk` trong ngày 12/11?
+6. **Phương án bọc Native dự phòng:** ~~Ai sẽ dựng khung Capacitor bọc PWA thành `.apk`?~~ **Đã trả lời 14/11:** Tech Lead chuyển hẳn sang React Native + Expo (DEC-08); APK build qua EAS.
 7. **Phân công phỏng vấn người dùng hôm nay (12/11):** Ai chịu trách nhiệm phỏng vấn sâu 30 sinh viên và phát tán khảo sát 156 sinh viên để chuyển các "Giả thuyết" thành "Bằng chứng thật"?
 8. **Định dạng xuất lịch:** Ưu tiên xuất file `.ics` tải về mở trực tiếp trên app Lịch mặc định của điện thoại hay xuất đường link redirect sang Google Calendar web?
 9. **Đặt tên chính thức cho sản phẩm:** Chốt tên sản phẩm ngắn gọn, dễ nhớ để hiển thị dưới icon ứng dụng trên màn hình điện thoại và trên tiêu đề slide.

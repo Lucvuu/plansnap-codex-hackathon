@@ -7,12 +7,12 @@
 | Thông tin quản trị | Chi tiết |
 |---|---|
 | **Tên sản phẩm** | **PlanSnap** (Tên phát triển: *Capture → Plan*) |
-| **Phiên bản tài liệu** | **v2.0 (Official Hackathon Production Baseline)** |
+| **Phiên bản tài liệu** | **v2.1** (14/11/2026: chuyển nền tảng sang app native React Native + Expo — xem DEC-08) |
 | **Ngày ban hành** | 12/11/2026 |
 | **Đội ngũ phát triển** | **technoComplex** – Codex Community Hackathon Hà Nội |
 | **Chủ sở hữu sản phẩm (PM)** | Vũ Thế Lực (PM / Product Lead) |
 | **Trạng thái tài liệu** | **APPROVED & BASELINE FOR IMPLEMENTATION** |
-| **Nền tảng mục tiêu** | Mobile PWA Standalone (iOS Safari & Android Chrome) + Capacitor APK Fallback |
+| **Nền tảng mục tiêu** | App native React Native + Expo SDK 58 (`mobile/`): Android (APK qua EAS) là máy demo chính; iOS và web chạy chung mã nguồn |
 | **Bộ não AI** | Multi-modal Vision LLM (Gemini 2.5 Flash) + Deterministic Scheduling Engine (Code thuần) |
 | **Căn cứ pháp lý & Chuẩn mực** | [00_Thang_diem_BTC.md](file:///d:/Codex%20hackathon%20HN/docs/00_Thang_diem_BTC.md) & [00_Doc_hieu.md](file:///d:/Codex%20hackathon%20HN/docs/00_Doc_hieu.md) |
 
@@ -37,7 +37,7 @@ Tài liệu này áp dụng quy chuẩn quản trị dự án chuyên nghiệp (
 
 ### 1.2. Nhận định Chiến lược Định hình Sản phẩm (3 Key Insights)
 1. **Độ ổn định của MỘT luồng AI quan trọng hơn số lượng tính năng `[PT]`:** Demo AI chạy trực tiếp trên điện thoại thật chiếm **40/100 điểm** và là tiêu chí phá hòa đầu tiên `[BTC]`. Do đó, kiến trúc tập trung tối đa vào độ mượt, tốc độ phản hồi (< 8s) và khả năng phục hồi dữ liệu 100% sau khi bị vuốt tắt app.
-2. **Loại trừ rủi ro 0 điểm của Web/PWA `[ĐX]`:** Thang điểm BTC quy định *"0 điểm nếu chỉ demo bằng trình duyệt"*. PlanSnap bắt buộc phải chạy ở chế độ Standalone (toàn màn hình, không thanh URL, mở từ Icon màn hình chính) và có sẵn khung bọc Capacitor `.apk` dự phòng.
+2. **Loại trừ rủi ro 0 điểm của Web/PWA `[ĐX]`:** Thang điểm BTC quy định *"0 điểm nếu chỉ demo bằng trình duyệt"*. Từ 14/11, PlanSnap là app native (React Native + Expo) cài từ file APK và mở từ icon màn hình chính, không còn chạy trên web runtime.
 3. **Thu hẹp đối tượng đầu tiên vào Sinh viên Hà Nội `[PT]`:** Tập trung giải quyết bài toán của sinh viên năm 2–4 có nhiều môn học và bài tập nhóm. Nhóm đối tượng này có nỗi đau nhức nhối, dễ đo đạc bằng chứng thực tế và dễ có người dùng thật trước ngày thi 14/11.
 
 ---
@@ -99,13 +99,13 @@ TIÊU CHÍ 1: DEMO ĐT THẬT             TIÊU CHÍ 2: VẤN ĐỀ THẬT      
 ## 4. PHẠM VI SẢN PHẨM (SCOPE OF WORK)
 
 ### 4.1. Trong phạm vi MVP Hackathon (In-Scope)
-- [x] PWA di động cài đặt ra màn hình chính, giao diện Standalone không thanh URL.
-- [x] Nén ảnh đa luồng tại máy khách bằng Canvas API (max 1600px, JPEG 0.8).
+- [x] App native React Native + Expo, cài bằng file APK, mở từ icon màn hình chính.
+- [x] Nén ảnh trên máy bằng `expo-image-manipulator` (max 1200px, JPEG 0.78).
 - [x] Multi-modal AI Vision Agent tích hợp Google Gemini 2.5 Flash với Structured Output JSON.
 - [x] Nhận diện và bóc tách câu trích dẫn nguồn (`source_quote`) làm bằng chứng cho từng task.
 - [x] Giao diện Human-in-the-Loop: Thẻ hỏi lại 1-chạm khi deadline mơ hồ.
 - [x] Thuật toán xếp lịch xác định (Deterministic Scheduler) theo nguyên tắc EDF và buffer an toàn.
-- [x] Lưu trữ cục bộ bền vững bằng IndexedDB (Zero Data Loss khi tắt mở app).
+- [x] Lưu trữ cục bộ bền vững bằng AsyncStorage, API key trong Keychain/Keystore (Zero Data Loss khi tắt mở app).
 - [x] Xuất lịch ra tệp iCalendar (`.ics`) chuẩn RFC 5545 và link tạo sự kiện Google Calendar.
 - [x] Tính năng Demo Wow: Camera chụp và giải mã trực tiếp chữ viết tay của Ban Giám khảo.
 
@@ -129,14 +129,14 @@ TIÊU CHÍ 1: DEMO ĐT THẬT             TIÊU CHÍ 2: VẤN ĐỀ THẬT      
 
 ```mermaid
 flowchart TD
-    subgraph CLIENT_LAYER["Tầng Thiết bị Khách (Mobile PWA)"]
-        A[1–5 Ảnh Screenshot / Camera] --> B[HTML5 Canvas: Nén ảnh max 1600px, JPEG 0.8]
-        B --> C[Client App Controller: Quản lý State & UI]
-        C <--> DB[(Lưu trữ Cục bộ: IndexedDB)]
+    subgraph CLIENT_LAYER["Tầng Thiết bị Khách (App Native React Native + Expo)"]
+        A[1–5 Ảnh Screenshot / Camera] --> B[expo-image-manipulator: Nén ảnh max 1200px, JPEG 0.78]
+        B --> C[AppStore: Quản lý State & UI]
+        C <--> DB[(Lưu trữ Cục bộ: AsyncStorage + SecureStore)]
     end
 
     subgraph AI_LAYER["Tầng AI Agent (Multi-modal Vision)"]
-        B --> D[Google Gemini 2.5 Flash API]
+        B --> D[Google Gemini Flash API]
         D --> E{Kiểm tra Structured JSON Schema}
         E -->|Thành công| F[Tasks Contract: Title + Source Quote + Deadline]
         E -->|Lỗi Schema| G[Auto-retry 1 lần với Temperature 0.0]
@@ -159,25 +159,25 @@ flowchart TD
 
 ### 6.1. Nhóm F1: Thu nhận & Nén ảnh tại Máy khách (Client-side Ingestion)
 
-#### FR-1.1: Cài đặt và Khởi chạy Độc lập (Standalone PWA)
+#### FR-1.1: Cài đặt và Khởi chạy App Native
 - **Mức độ ưu tiên:** **P0 (Bắt buộc cho Tiêu chí 1)**
-- **User Story:** Là một người dùng, tôi muốn cài ứng dụng ra màn hình chính điện thoại và mở lên toàn màn hình để có trải nghiệm như một ứng dụng native thực thụ.
+- **User Story:** Là một người dùng, tôi muốn cài ứng dụng lên điện thoại và mở từ icon màn hình chính như mọi app khác.
 - **Tiêu chuẩn chấp nhận:**
-  - File `manifest.json` cấu hình đầy đủ `display: "standalone"`, `start_url: "./index.html"`, theme color `#0a0f1d`.
-  - Khi mở từ icon màn hình chính, ứng dụng không hiển thị thanh URL hoặc thanh công cụ của trình duyệt.
+  - Build APK bằng EAS (`eas build --profile preview --platform android`), package `com.technocomplex.plansnap`, cài được trực tiếp lên Android.
+  - App hiện trong danh sách ứng dụng của hệ điều hành, mở từ icon, không cần Expo Go, trình duyệt hay máy tính đi kèm.
 
 #### FR-1.2: Thu nhận Đa nguồn Ảnh
 - **Mức độ ưu tiên:** **P0**
 - **Tiêu chuẩn chấp nhận:**
   - Hỗ trợ chọn cùng lúc từ 1 đến 5 ảnh từ Thư viện ảnh (Photo Gallery).
   - Hỗ trợ kích hoạt Camera chụp trực tiếp từ giao diện ứng dụng.
-  - Hỗ trợ các định dạng ảnh phổ biến: JPEG, PNG, WebP, SVG.
+  - Hỗ trợ các định dạng ảnh phổ biến từ thư viện ảnh và camera (JPEG, PNG); ảnh mẫu đóng gói sẵn dạng PNG.
 
-#### FR-1.3: Nén ảnh Tự động bằng HTML5 Canvas
+#### FR-1.3: Nén ảnh Tự động trên máy
 - **Mức độ ưu tiên:** **P0**
 - **Tiêu chuẩn chấp nhận:**
-  - Tự động scale ảnh có cạnh dài nhất vượt quá 1600px về đúng 1600px (giữ nguyên tỷ lệ khung hình).
-  - Nén về định dạng `image/jpeg` chất lượng 0.8.
+  - Tự động scale ảnh có cạnh dài nhất vượt quá 1200px về đúng 1200px (giữ nguyên tỷ lệ khung hình), dùng `expo-image-manipulator`.
+  - Nén về định dạng `image/jpeg` chất lượng 0.78.
   - Dung lượng mỗi ảnh sau nén phải **giảm ≥ 85%** (từ 5–8MB xuống < 300KB) nhưng chữ viết vẫn sắc nét.
   - Thời gian nén 3 ảnh tại client không vượt quá 500ms.
 
@@ -252,7 +252,7 @@ flowchart TD
 #### FR-4.3: Xuất file iCalendar (`.ics`) Chuẩn RFC 5545
 - **Mức độ ưu tiên:** **P0**
 - **Tiêu chuẩn chấp nhận:**
-  - Nhấn nút "Xuất vào Lịch" sẽ tự động tạo và tải về tệp `plansnap_lich_lam_viec.ics`.
+  - Nhấn nút "Xuất vào Lịch" sẽ tạo tệp `.ics` và mở bảng chia sẻ của hệ điều hành (chọn app Lịch, Lưu vào Tệp, gửi Zalo...); tệp được escape và gập dòng đúng RFC 5545.
   - Tệp `.ics` mở trực tiếp ứng dụng Lịch mặc định trên điện thoại (Apple Calendar trên iOS, Google Calendar / Samsung Calendar trên Android).
   - Tự động tích hợp chuông báo thức nhắc nhở trước 15 phút cho mỗi phiên làm việc.
 
@@ -265,10 +265,10 @@ flowchart TD
 
 ### 6.5. Nhóm F5: Lưu trữ Bền vững & Phòng ngừa 0 Điểm (Zero Data Loss)
 
-#### FR-5.1: Lưu trữ Trạng thái Cục bộ qua IndexedDB
+#### FR-5.1: Lưu trữ Trạng thái Cục bộ
 - **Mức độ ưu tiên:** **P0 (Sống còn cho Tiêu chí 1)**
 - **Tiêu chuẩn chấp nhận:**
-  - Mọi dữ liệu (ảnh, danh sách việc, kế hoạch tuần, API key) đều được lưu trữ bền vững vào cơ sở dữ liệu IndexedDB `PlanSnapDB` trên điện thoại.
+  - Danh sách việc, khung giờ rảnh và model được lưu bền vững bằng `AsyncStorage`; API key lưu trong Keychain (iOS) / Keystore (Android) qua `expo-secure-store`. Kế hoạch tuần được tính lại từ đầu việc + khung giờ mỗi lần mở app. Ảnh không được lưu (NFR-03).
   - **Bài test Swipe-kill:** Khi vuốt tắt hẳn ứng dụng trong màn hình App Switcher rồi mở lại, toàn bộ kế hoạch tuần và trạng thái hiển thị phải được khôi phục nguyên vẹn 100% trong thời gian < 0.3 giây.
 
 #### FR-5.2: Thử thách Chữ viết tay của Ban Giám khảo (Màn Wow)
@@ -354,10 +354,10 @@ interface ScheduledEvent {
   - Đóng ứng dụng ở bất kỳ màn hình nào (kể cả khi đang xử lý hay đang duyệt), mở lại phải giữ nguyên trạng thái, không bao giờ rơi vào màn hình trắng.
 - **NFR-03: Bảo mật & Quyền riêng tư (Privacy by Design):**
   - Toàn bộ ảnh xử lý trong phiên làm việc chỉ lưu tạm trong bộ nhớ RAM của client; **tuyệt đối không lưu trữ dữ liệu ảnh cá nhân của người dùng trên bất kỳ máy chủ nào**.
-  - Dữ liệu kế hoạch và khung giờ sinh hoạt chỉ nằm trong cơ sở dữ liệu IndexedDB của thiết bị người dùng.
+  - Dữ liệu kế hoạch và khung giờ sinh hoạt chỉ nằm trong bộ nhớ cục bộ của thiết bị người dùng.
 - **NFR-04: Khả năng Chịu lỗi Mạng (Network Resilience):**
   - Tự động thử lại (retry) 1 lần nếu kết nối API bị gián đoạn.
-  - Cung cấp sẵn bộ mô phỏng thông minh (Offline Fallback Engine) để bảo đảm màn demo diễn ra trơn tru ngay cả khi mạng hội trường bị mất sóng hoàn toàn.
+  - Khi mất mạng, app vẫn mở và hiển thị đầy đủ đầu việc, lịch đã lưu; bước AI báo lỗi rõ ràng và cho thử lại. Không thay kết quả AI bằng dữ liệu soạn sẵn.
 
 ---
 
@@ -366,7 +366,7 @@ interface ScheduledEvent {
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │ MÀN HÌNH 1: CHỤP / QUÉT ẢNH                                            │
-│ • Header: Logo PlanSnap ⚡ + Đèn xanh "Live 4G & IndexedDB"            │
+│ • Header: Logo PlanSnap ⚡ + Trạng thái kết nối Gemini                 │
 │ • Thanh Preset: [⚡ Nạp 3 ảnh sinh viên mẫu] [✍️ Nạp ảnh viết tay BGK]  │
 │ • Dropzone: Khung chọn ảnh từ thư viện hoặc chụp camera                │
 │ • Thumbnail Grid: Hiển thị ảnh kèm dung lượng đã nén (tiết kiệm ~90%) │
@@ -397,9 +397,9 @@ interface ScheduledEvent {
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │ MÀN HÌNH 4: CÀI ĐẶT & QUẢN TRỊ                                         │
-│ • Cấu hình Gemini API Key (Lưu IndexedDB)                             │
+│ • Cấu hình Gemini API Key (Lưu Keychain/Keystore)                     │
 │ • Bảng Toggle bật/tắt khung giờ rảnh trong tuần                        │
-│ • Nút đỏ: [Xóa trắng bộ nhớ IndexedDB] (Chuẩn bị lượt demo mới)        │
+│ • Nút đỏ: [Xóa dữ liệu đã lưu] (Chuẩn bị lượt demo mới, xóa cả key)    │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -413,8 +413,8 @@ interface ScheduledEvent {
 | Phần việc chuẩn bị trước (Được gắn Git Tag `pre-hackathon` trước 14/11) | Phần việc phát triển trực tiếp tại sự kiện ngày 14/11 |
 |---|---|
 | 1. Nghiên cứu thực tế: 30 phỏng vấn sâu + 156 khảo sát & Bộ test 40 screenshot che PII. | 1. Hoàn thiện Thuật toán xếp lịch tự động chừa buffer an toàn. |
-| 2. Dựng khung PWA Shell Standalone & Cơ chế lưu trữ IndexedDB. | 2. Xây dựng UI thẻ làm rõ hạn chót mơ hồ 1-chạm (Human-in-the-Loop). |
-| 3. Module Canvas nén ảnh Client-side. | 3. Module đóng gói tệp iCalendar `.ics` chuẩn RFC 5545. |
+| 2. Bản web app PWA (`app/`) đủ luồng: nén ảnh, Gemini, thẻ hỏi lại 1-chạm, xếp lịch EDF, xuất `.ics`, lưu IndexedDB. | 2. Chuyển toàn bộ ứng dụng sang app native React Native + Expo (`mobile/`), build APK (DEC-08). |
+| 3. *(Gộp vào mục 2)* | 3. Tệp `.ics` escape + gập dòng chuẩn RFC 5545, xuất qua share sheet; API key chuyển vào Keychain/Keystore. |
 | 4. Bản Beta thử nghiệm với 42 sinh viên đại học (tạo 218 đầu việc). | 4. Tối ưu hóa độ trễ phản hồi toàn luồng dưới 8 giây qua 4G. |
 | 5. Soạn thảo tài liệu PRD, Kiến trúc Agent, Kịch bản Demo và Pitch Deck. | 5. Tổng duyệt Kịch bản Demo 3 lần trên thiết bị điện thoại thật. |
 
@@ -424,7 +424,7 @@ interface ScheduledEvent {
 
 | Hạng mục kiểm tra | Tiêu chuẩn Đạt (Pass Criteria) | Phương pháp kiểm tra | Trạng thái |
 |---|---|---|:---:|
-| **Swipe-kill 20 lần** | Cả 20/20 lần vuốt đóng hẳn app trong App Switcher rồi mở lại đều bảo toàn 100% dữ liệu kế hoạch. | Thao tác bằng tay trên cả iPhone và Android demo. | **READY** |
+| **Swipe-kill 20 lần** | Cả 20/20 lần vuốt đóng hẳn app trong App Switcher rồi mở lại đều bảo toàn 100% dữ liệu kế hoạch. | Thao tác bằng tay trên **bản APK native** cài trên 2 máy Android demo. | **CẦN CHẠY LẠI** (kết quả cũ là của PWA) |
 | **Bóc tách Ảnh Live** | Đọc thành công 3 ảnh thật qua mạng 4G trong thời gian < 8 giây; trích đúng tên việc và hạn chót. | Chạy luồng quét ảnh thực tế trước mặt BGK. | **READY** |
 | **Thử thách BGK viết tay** | Chụp trực tiếp chữ viết tay ngẫu nhiên của BGK; AI nhận diện đúng nội dung và xếp lịch ngay tức thì. | Mời trực tiếp Giám khảo viết tay lên giấy. | **READY** |
 | **Xuất Calendar** | Tệp `.ics` tải về mở trực tiếp ứng dụng Lịch của điện thoại và hiển thị đầy đủ các sự kiện có chuông nhắc. | Bấm nút xuất và mở ứng dụng Lịch trên máy. | **READY** |

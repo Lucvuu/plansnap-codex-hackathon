@@ -12,12 +12,12 @@
 
 ## 1. Nhóm câu hỏi về Kỹ thuật & Công nghệ (Tiêu chí 1: 40 Điểm)
 
-### Câu hỏi 1: "Tại sao các bạn dùng PWA mà không viết Native App bằng Flutter/React Native/Swift?"
+### Câu hỏi 1: "Bản beta là web app, sao hôm nay lại là app native? Các bạn dùng công nghệ gì?"
 * **Trả lời sắc bén của Speaker:**  
-  *"Thưa Ban Giám khảo, chúng em chọn PWA Standalone vì 3 lý do chiến lược:**
-  1. **Tốc độ phân phối người dùng (Zero Friction Distribution):** Để đạt tiêu chí 3 (có người dùng thật trước ngày thi), PWA cho phép sinh viên cài đặt qua 1 đường link trong 3 giây từ nhóm Zalo lớp, không cần chờ duyệt 3–7 ngày trên App Store hay cài TestFlight phức tạp. Nhờ đó nhóm đã có **42 sinh viên dùng thật (bóc tách 218 đầu việc)** trước ngày hôm nay.
-  2. **Hiệu năng và Tính độc lập:** Với `manifest.json` cấu hình `display: standalone` và cơ chế lưu trữ bền vững `IndexedDB`, ứng dụng chạy toàn màn hình, mở trực tiếp từ Icon và phục hồi 100% dữ liệu khi vuốt tắt app.
-  3. **Phương án phòng thủ:** Nhóm đã chuẩn bị sẵn khung bọc Capacitor (tệp `capacitor.config.json` và hướng dẫn trong tài liệu) để đóng gói thành file `.apk` cài trực tiếp lên Android chỉ trong 15 phút nếu cần."*
+  *"Thưa Ban Giám khảo, nhóm đi theo 2 giai đoạn có chủ đích:**
+  1. **Trước ngày thi – web app (PWA) để có người dùng nhanh:** Sinh viên dùng thử chỉ qua 1 đường link trong nhóm Zalo lớp, không phải chờ duyệt App Store. Nhờ đó nhóm có dữ liệu beta trước ngày hôm nay.
+  2. **Ngày thi – app native React Native + Expo:** Hôm nay nhóm chuyển toàn bộ tính năng sang app native, build thành file APK cài trực tiếp lên Android. App mở từ icon, dữ liệu lưu cục bộ trên máy nên vuốt tắt rồi mở lại vẫn còn nguyên; API key nằm trong kho bảo mật Keystore.
+  3. **Một mã nguồn cho cả Android, iOS và web:** Mở rộng sang iOS chỉ cần build và phát hành, không phải viết lại."*
 
 ---
 
@@ -44,7 +44,7 @@
 * **Trả lời sắc bén của Speaker:**  
   *"Nhóm đã chuẩn bị sẵn kịch bản phòng thủ đa tầng:**
   1. Đội mang theo **02 bộ phát Wi-Fi 4G độc lập** của 2 nhà mạng khác nhau (Viettel và VinaPhone), chuyển đổi chỉ mất 2 giây.
-  2. Nhóm đã tích hợp sẵn cơ chế **Offline Fallback Engine** trong Service Worker. Nếu mất mạng hoàn toàn, hệ thống tự động kích hoạt bộ xử lý mô phỏng bám sát bộ test thực tế để bảo đảm tiến trình demo không bao giờ bị treo, và tuyệt đối không dùng video thay thế để không bị 0 điểm."*
+  2. Khi mất mạng, app vẫn mở bình thường và giữ nguyên toàn bộ đầu việc, lịch đã lưu trên máy; chỉ bước AI đọc ảnh cần mạng. Nhóm không thay bằng kết quả soạn sẵn hay video, mà chuyển mạng rồi bấm thử lại."*
 
 ---
 
@@ -78,7 +78,7 @@
   *"Nhóm tiếp cận chính xác qua **Kênh Lớp trưởng và Ban Cán Sự Lớp**:**
   1. Lớp trưởng là người nhận thông báo từ giảng viên và đăng vào nhóm Zalo lớp. Họ chịu áp lực lớn nhất khi cả lớp quên nộp bài tập lớn.
   2. Chúng em đưa PlanSnap cho Lớp trưởng: Lớp trưởng quét ảnh đề cương, tạo kế hoạch mẫu và chia sẻ đường link lịch cho cả lớp.
-  3. **Vòng lan truyền (Viral Loop):** Khi một sinh viên bóc tách deadline bài tập nhóm, bạn ấy chia sẻ link kế hoạch cho 4 bạn cùng nhóm để phân chia tiến độ. 4 bạn này mở link và cài app PWA chỉ trong 3 giây. Đây là kênh phân phối 0 đồng với hệ số lan truyền tự nhiên K-factor > 1."*
+  3. **Vòng lan truyền (Viral Loop):** Khi một sinh viên bóc tách deadline bài tập nhóm, bạn ấy chia sẻ link kế hoạch cho 4 bạn cùng nhóm để phân chia tiến độ. 4 bạn này mở link và tải app về máy. Đây là kênh phân phối 0 đồng với hệ số lan truyền tự nhiên K-factor > 1."*
 
 ---
 
@@ -97,8 +97,8 @@
 ### Câu hỏi 9: "Ảnh chụp màn hình tin nhắn Zalo của sinh viên có bị lộ thông tin cá nhân lên server của bạn không?"
 * **Trả lời sắc bén của Speaker:**  
   *"PlanSnap được xây dựng theo nguyên tắc **Privacy by Design & Local-first**:**
-  1. Ảnh chụp chỉ được truyền tạm thời qua bộ nhớ RAM của Cloudflare Worker để gửi sang Vision API; **server hoàn toàn không lưu trữ bất kỳ tệp ảnh nào lên ổ đĩa**.
-  2. Toàn bộ kế hoạch học tập, thời khóa biểu và dữ liệu cá nhân chỉ lưu trong cơ sở dữ liệu `IndexedDB` trên chính điện thoại của người dùng.
+  1. Ảnh được nén ngay trên điện thoại rồi gửi thẳng tới Gemini API của Google qua HTTPS để đọc; **nhóm không vận hành máy chủ riêng nên không lưu bất kỳ ảnh nào**.
+  2. Toàn bộ kế hoạch học tập, khung giờ rảnh và dữ liệu cá nhân chỉ lưu cục bộ trên chính điện thoại của người dùng; API key nằm trong kho bảo mật Keychain/Keystore của máy.
   3. Ứng dụng không yêu cầu đăng ký tài khoản, không thu thập số điện thoại hay email, bảo đảm an toàn quyền riêng tư 100%."*
 
 ---
@@ -108,5 +108,5 @@
 ### Câu hỏi 10: "Phần nào các bạn đã làm trước, và phần nào các bạn làm trong ngày hôm nay tại Hackathon?"
 * **Trả lời sắc bén của Speaker:**  
   *"Thưa BGK, nhóm tuân thủ tuyệt đối quy định của BTC và đã đóng dấu commit tag `pre-hackathon` trên Git repository trước ngày 14/11:
-  - **Phần chuẩn bị trước (Đã gắn Git Tag):** Khảo sát 30 sinh viên phỏng vấn sâu 1-on-1 và 156 sinh viên khảo sát diện rộng, thu thập bộ test 40 screenshot che PII, dựng khung PWA Shell Standalone, module nén ảnh Canvas và bản thử nghiệm Beta với 42 người dùng thực tế (218 đầu việc).
-  - **Phần phát triển trực tiếp tại sự kiện:** Thuật toán xếp lịch tự động có buffer an toàn, giao diện thẻ làm rõ mốc mơ hồ 1-chạm (Human-in-the-Loop), module đóng gói iCalendar `.ics`, tối ưu độ trễ dưới 8 giây và tích hợp kịch bản demo chụp chữ viết tay của BGK."*
+  - **Phần chuẩn bị trước (Đã gắn Git Tag):** Khảo sát 30 sinh viên phỏng vấn sâu 1-on-1 và 156 sinh viên khảo sát diện rộng, thu thập bộ test 40 screenshot che PII, dựng bản web app PWA và bản thử nghiệm Beta với 42 người dùng thực tế (218 đầu việc).
+  - **Phần phát triển trực tiếp tại sự kiện:** Chuyển toàn bộ ứng dụng sang app native React Native + Expo và build APK, tối ưu độ trễ và tích hợp kịch bản demo chụp chữ viết tay của BGK."*

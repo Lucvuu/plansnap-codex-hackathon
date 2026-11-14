@@ -15,7 +15,7 @@
 ### DEC-01: Chọn Progressive Web App (PWA Standalone) làm nền tảng chính
 * **Ngày quyết định:** 12/11/2026
 * **Người đề xuất:** Tech Lead / PM
-* **Trạng thái:** **Đã chốt (Kèm điều kiện phòng ngừa rủi ro)**
+* **Trạng thái:** **ĐÃ BỊ THAY THẾ bởi [DEC-08](#dec-08-chuyển-từ-pwa-sang-ứng-dụng-native-react-native--expo) ngày 14/11/2026** (giữ lại để truy vết)
 * **Bối cảnh:**
   - Tiêu chí 1 yêu cầu *"Demo AI trên điện thoại thật — Đóng hẳn rồi mở lại ứng dụng; luồng AI chính chạy trực tiếp"*.
   - Phát triển ứng dụng Native thuần (Swift / Kotlin) trong 48 tiếng là bất khả thi và rủi ro phân mảnh thiết bị rất cao.
@@ -77,6 +77,7 @@
     - Cạnh dài tối đa (max dimension): `1600px`.
     - Định dạng: `image/jpeg`.
     - Chất lượng (quality): `0.80`.
+* **Cập nhật 14/11/2026 (theo DEC-08):** Bản native nén bằng `expo-image-manipulator` thay cho Canvas, cạnh dài tối đa `1200px`, JPEG chất lượng `0.78` (giữ đúng thông số đang chạy của PWA, xem `mobile/src/lib/image.ts`). Nguyên tắc "nén trên máy trước khi gửi" giữ nguyên.
 * **Kết quả:**
   - Dung lượng mỗi ảnh giảm từ ~8MB xuống còn ~250KB (giảm hơn 95%).
   - Thời gian upload 3 ảnh qua 4G giảm từ 15 giây xuống dưới 1.5 giây, trong khi chữ trên tài liệu và tin nhắn vẫn cực kỳ sắc nét để Vision LLM đọc chính xác.
@@ -86,7 +87,7 @@
 ### DEC-05: Lưu trữ trạng thái cục bộ bền vững bằng IndexedDB
 * **Ngày quyết định:** 12/11/2026
 * **Người đề xuất:** Frontend Dev / PM
-* **Trạng thái:** **Đã chốt**
+* **Trạng thái:** **Đã cập nhật theo DEC-08** — bản native dùng `AsyncStorage` cho đầu việc, khung giờ rảnh, model; API key lưu trong Keychain (iOS) / Keystore (Android) qua `expo-secure-store`; lịch làm việc không lưu mà được tính lại từ đầu việc + khung giờ mỗi lần mở app. Mục tiêu "đóng hẳn mở lại vẫn còn dữ liệu" giữ nguyên.
 * **Bối cảnh:**
   - Tiêu chí 1 quy định mức 40 điểm: *"Đóng hẳn rồi mở lại ứng dụng trên điện thoại thật"*.
   - Nếu chỉ lưu trong bộ nhớ RAM, khi người dùng vuốt tắt app trong App Switcher, dữ liệu sẽ biến mất hoàn toàn.
@@ -125,4 +126,24 @@
   - Bổ sung nút link URL nhanh `https://calendar.google.com/calendar/render?action=TEMPLATE` cho từng sự kiện.
 * **Kết quả:**
   - Không cần quyền truy cập nhạy cảm, không lo hết hạn token, tương thích với 100% thiết bị điện thoại thật.
+* **Cập nhật 14/11/2026 (theo DEC-08):** Trên bản native, nút "Xuất vào Lịch" mở bảng chia sẻ của hệ điều hành (`expo-sharing`) để chọn app Lịch / Lưu vào Tệp / gửi Zalo; tệp `.ics` được escape và gập dòng đúng RFC 5545.
+
+---
+
+### DEC-08: Chuyển từ PWA sang ứng dụng Native (React Native + Expo)
+* **Ngày quyết định:** 14/11/2026 (ngày thi)
+* **Người đề xuất:** Tech Lead — cả nhóm thống nhất
+* **Trạng thái:** **Đã chốt** — thay thế DEC-01
+* **Bối cảnh:**
+  - Thang điểm BTC: *"0 điểm nếu ... chỉ demo bằng trình duyệt"*. PWA dù chạy standalone vẫn là web runtime, rủi ro RSK-01 (mất 40 điểm Tiêu chí 1) chưa được BTC xác nhận loại trừ.
+  - Phương án Capacitor (DEC-01) chỉ bọc lại web, chưa từng được build.
+  - Tech Lead đã port toàn bộ PWA sang Expo (commit `4df37e0`, 14/11) với đủ tính năng: quét ảnh, Gemini Vision, hỏi lại 1 chạm, xếp lịch EDF, xuất `.ics`, lưu cục bộ.
+* **Quyết định:**
+  - Nền tảng chính: **Expo SDK 58 + Expo Router + TypeScript**, mã nguồn tại `mobile/` (xem `mobile/README.md`).
+  - Demo trên sân khấu bằng **bản build cài đặt (APK, EAS profile `preview`)** mở từ icon trên Android — không demo qua Expo Go hay trình duyệt.
+  - PWA `app/` ngừng phát triển; giữ lại làm tham chiếu và bằng chứng của bản beta đã chạy trước 14/11.
+* **Đánh giá Trade-offs:**
+  - *Ưu điểm:* Là app native thật → loại bỏ rủi ro "demo bằng trình duyệt"; API key nằm trong kho bảo mật của máy, gửi qua header; xuất lịch qua share sheet; một mã nguồn cho Android, iOS, web.
+  - *Nhược điểm / Rủi ro:* Build APK qua EAS cần tài khoản Expo và thời gian chờ hàng đợi; bản iOS cài đặt cần tài khoản Apple Developer (TestFlight); người dùng mới cài bằng APK thay vì mở link web (cần cho phép "cài từ nguồn không xác định" trên Android).
+* **Tác động lên quyết định khác:** DEC-04 (nén ảnh), DEC-05 (lưu trữ), DEC-07 (xuất lịch) đã cập nhật ở trên. Rủi ro mới ghi tại `06_RAID_Log_va_Kiem_thu.md` (RSK-07, RSK-08).
 

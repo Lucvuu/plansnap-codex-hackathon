@@ -22,11 +22,11 @@
 
 ```mermaid
 flowchart TD
-    IMG[1–5 Ảnh Screenshot / Camera] --> CLIENT[PWA Client: Nén ảnh JPEG max 1600px]
-    CLIENT --> API[Serverless Proxy / Vision Controller]
+    IMG[1–5 Ảnh Screenshot / Camera] --> CLIENT[App Native Expo: Nén ảnh JPEG max 1200px]
+    CLIENT --> API[Gọi thẳng Gemini API qua HTTPS, key trong header]
     
     subgraph AGENT_BRAIN["Khối AI Agent (Vision Multi-modal)"]
-        API --> V_LLM[Vision LLM: Gemini 2.5 Flash / Claude Haiku]
+        API --> V_LLM[Vision LLM: Gemini Flash, tự chuyển model dự phòng]
         V_LLM --> JSON_SCHEMA{Kiểm tra Structured JSON Schema}
         JSON_SCHEMA -->|Hợp lệ| TASKS[Danh sách Task + Source Quote]
         JSON_SCHEMA -->|Lỗi Schema| RETRY[Auto-retry 1 lần với Temperature 0.0]
@@ -40,13 +40,13 @@ flowchart TD
     HITL -->|Người dùng chọn ngày| SCHEDULER[Thuật toán Xếp lịch Code thuần]
     
     subgraph DETERMINISTIC_ENGINE["Khối Xếp lịch Xác định (Code thuần)"]
-        SCHEDULER --> AVAIL[Đọc Khung giờ rảnh tuần từ IndexedDB]
+        SCHEDULER --> AVAIL[Đọc Khung giờ rảnh tuần từ bộ nhớ cục bộ]
         AVAIL --> PACKING[Xếp phiên ưu tiên hạn chót gần nhất + Chừa buffer]
         PACKING --> PLAN[Kế hoạch tuần chi tiết]
     end
 
     PLAN --> REVIEW[Màn hình Duyệt việc & Kế hoạch]
-    REVIEW --> LOCAL_DB[(Lưu trữ bền vững IndexedDB)]
+    REVIEW --> LOCAL_DB[(Lưu trữ cục bộ AsyncStorage + SecureStore)]
     REVIEW --> EXPORT[Xuất file .ics / Link Google Calendar]
 ```
 
@@ -160,10 +160,10 @@ Bắt buộc trả về đúng định dạng JSON Schema của Structured Outpu
 
 Để bảo đảm màn demo trên sân khấu diễn ra dưới 10 giây (tránh bị BGK đánh giá là "chạy một phần hoặc chưa ổn định" - mất 20 điểm):
 
-1. **Client-side Compression (Canvas API):**
+1. **Nén ảnh trên máy (`expo-image-manipulator`):**
    - Kích thước ảnh gốc chụp bằng điện thoại thường từ 3000x4000px (5–12MB).
-   - Trước khi gửi đi, PWA dùng HTML5 Canvas nén ảnh về cạnh dài tối đa 1600px, định dạng `image/jpeg` với chất lượng 0.8.
-   - Dung lượng giảm 95% xuống còn khoảng 200–350KB. Thời gian upload qua 4G giảm từ 8 giây xuống còn 0.8 giây.
+   - Trước khi gửi đi, app nén ảnh về cạnh dài tối đa 1200px, định dạng `image/jpeg` với chất lượng 0.78 (`mobile/src/lib/image.ts`).
+   - Dung lượng giảm hơn 90%, thời gian upload qua 4G còn dưới 1 giây.
 2. **Chọn Model phù hợp:**
    - Ưu tiên 1: **Google Gemini 2.5 Flash** (Tốc độ đọc thị giác cực nhanh, hỗ trợ đa ảnh xuất sắc, độ trễ ~2–4 giây cho 3 ảnh).
    - Ưu tiên 2: **Claude 3.5 Haiku** (Nếu Gemini bị rate-limit).
@@ -180,5 +180,5 @@ Bắt buộc trả về đúng định dạng JSON Schema của Structured Outpu
 | **JSON trả về sai định dạng Schema** | Crash ứng dụng, màn hình trắng | Bọc bằng khối `try/catch`. Nếu JSON parse lỗi, tự động trích xuất chuỗi JSON bằng regex `\{[\s\S]*\}`. Nếu vẫn lỗi, gọi lại Vision API lần 2 ngay lập tức với prompt rút gọn. |
 | **Sóng 4G chập chờn / Timeout > 15s** | Treo màn hình demo | Timeout client đặt ở mức 15 giây. Nếu timeout, hiển thị thông báo thân thiện *"Mạng đang chậm, chạm để thử lại"* kèm thanh tiến trình. Không để ứng dụng bị đóng băng. |
 | **Ảnh chụp quá mờ / Chữ viết tay BGK khó đọc** | AI đoán mò hoặc báo không có việc | AI trả về task với `confidence: 0.5`, kèm cờ `needs_confirmation: true`. Ứng dụng hiển thị ô cho phép người dùng hoặc BGK bấm xác nhận nhanh tên việc. |
-| **Đóng hẳn app giữa chừng** | Mất kết quả vừa bóc tách | Ngay khi nhận được JSON từ API, client commit ngay lập tức vào IndexedDB trước khi render giao diện. Dù có bị vuốt tắt app ngay lúc đó, mở lại vẫn hiển thị kết quả. |
+| **Đóng hẳn app giữa chừng** | Mất kết quả vừa bóc tách | Danh sách việc được ghi vào `AsyncStorage` ngay sau mỗi lần thay đổi; lịch được tính lại từ đầu việc khi mở app. Tình huống vuốt tắt ngay sau khi có kết quả nằm trong bài test Swipe-kill (RSK-04). |
 
