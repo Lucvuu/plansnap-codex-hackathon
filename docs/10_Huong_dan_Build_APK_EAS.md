@@ -31,8 +31,12 @@ TZ=Asia/Ho_Chi_Minh node --test "src/lib/__tests__/*.test.ts"   # trên Windows 
 
 ```bash
 npx eas-cli@latest login
+# Một lần: đưa Gemini API key dùng chung lên EAS (file mobile/.env không được upload khi build cloud)
+npx eas-cli@latest env:set --name EXPO_PUBLIC_GEMINI_API_KEY --value "<API key>" --environment preview --environment production --visibility sensitive
 npx eas-cli@latest build --profile preview --platform android
 ```
+
+- Key được nhúng vào APK lúc build (ai có APK đều trích ra được): dùng key có giới hạn ngân sách/quota trong Google Cloud và **xóa/đổi key sau demo**, rồi build lại.
 
 - Lần đầu, CLI sẽ hỏi tạo project EAS và tạo Android keystore → chọn **Yes** để EAS tự quản lý.
 - Build xong, EAS in ra **link tải APK + mã QR**. Tải file `.apk` về laptop để cài lại khi cần.
@@ -45,7 +49,7 @@ npx eas-cli@latest build --profile preview --platform android
 ## 5. Kiểm tra sau khi cài
 
 - [ ] Mở app từ icon **PlanSnap** trên màn hình chính (không qua Expo Go, không qua trình duyệt).
-- [ ] Nhập Gemini API Key trong Cài đặt → bấm **Kiểm tra** → báo kết nối thành công.
+- [ ] Góc trên bên phải hiện **Gemini Live** (không phải **Demo**) → key đã được nhúng đúng.
 - [ ] Quét 3 ảnh mẫu → có danh sách việc kèm câu trích → chạm chọn ngày ở thẻ hỏi lại → có lịch.
 - [ ] Vuốt tắt app trong màn hình đa nhiệm rồi mở lại → đầu việc và lịch còn nguyên.
 - [ ] Chụp ảnh bằng camera → AI đọc được → việc mới được xếp lịch.

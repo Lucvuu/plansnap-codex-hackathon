@@ -1,5 +1,4 @@
-import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/state/AppStore';
@@ -19,15 +18,12 @@ export function AppHeader() {
         </View>
         <Text style={styles.brandName}>PlanSnap</Text>
       </View>
-      <Pressable
-        role="button"
-        accessibilityLabel={hasKey ? 'Đang kết nối Gemini' : 'Chế độ demo, mở cài đặt'}
-        onPress={() => router.navigate('/settings')}
-        hitSlop={8}
+      <View
+        accessibilityLabel={hasKey ? 'Đang dùng Gemini' : 'Chế độ demo: chỉ ảnh mẫu'}
         style={[styles.status, hasKey && styles.statusLive]}>
         <View style={[styles.dot, hasKey && { backgroundColor: colors.green }]} />
         <Text style={[styles.statusText, hasKey && { color: colors.green }]}>{hasKey ? 'Gemini Live' : 'Demo'}</Text>
-      </Pressable>
+      </View>
     </View>
   );
 }

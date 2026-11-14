@@ -5,7 +5,7 @@ import { ActivityIndicator, Animated, Image, Pressable, ScrollView, StyleSheet, 
 
 import { Icon, type IconName } from '@/components/Icon';
 import { useToast } from '@/components/Toast';
-import { Button, InlineAlert, LinkButton, PillButton } from '@/components/ui';
+import { Button, InlineAlert, PillButton } from '@/components/ui';
 import { successHaptic } from '@/lib/haptics';
 import { PermissionDeniedError, pickImages, type PickSource } from '@/lib/pick-images';
 import type { CapturedImage } from '@/lib/types';
@@ -176,8 +176,8 @@ export default function CaptureScreen() {
       )}
 
       {!hasKey && (
-        <InlineAlert action={<LinkButton label="Cài đặt" onPress={() => router.navigate('/settings')} />}>
-          Nhập Gemini API Key để AI đọc ảnh thật của bạn.
+        <InlineAlert>
+          Bản build này chưa có Gemini API Key (EXPO_PUBLIC_GEMINI_API_KEY) — chỉ chạy được ảnh mẫu bên dưới.
         </InlineAlert>
       )}
 

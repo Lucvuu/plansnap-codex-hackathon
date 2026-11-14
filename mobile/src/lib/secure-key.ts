@@ -1,17 +1,9 @@
-// Gemini API key storage — iOS Keychain / Android Keystore via expo-secure-store.
+// Per-user Gemini keys (v2.3) are gone: the app uses the built-in key from lib/config.ts.
+// This only removes a key a user saved earlier, so it doesn't linger in the Keychain/Keystore.
 import * as SecureStore from 'expo-secure-store';
 
 const KEY = 'plansnap.gemini_api_key';
 
-export async function getApiKey(): Promise<string> {
-  try {
-    return (await SecureStore.getItemAsync(KEY)) ?? '';
-  } catch {
-    return '';
-  }
-}
-
-export async function setApiKey(value: string): Promise<void> {
-  if (value) await SecureStore.setItemAsync(KEY, value);
-  else await SecureStore.deleteItemAsync(KEY);
+export async function clearStoredApiKey(): Promise<void> {
+  await SecureStore.deleteItemAsync(KEY);
 }

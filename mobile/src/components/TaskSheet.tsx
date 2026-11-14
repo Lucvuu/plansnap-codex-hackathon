@@ -1,25 +1,14 @@
 // Bottom sheet for adding / editing a task (port of #task-modal-backdrop).
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { defaultNewDeadline } from '@/lib/format';
 import type { Task } from '@/lib/types';
 import type { TaskInput } from '@/state/AppStore';
 import { colors, fonts } from '@/theme';
 
+import { BottomSheet } from './BottomSheet';
 import { DeadlineField } from './DeadlineField';
-import { Icon } from './Icon';
 import { Button } from './ui';
 
 const DURATIONS = [30, 45, 60, 90, 120, 180, 240];
@@ -41,7 +30,6 @@ interface Props {
 }
 
 export function TaskSheet({ visible, task, defaultMode = 'edf', formKey, onClose, onSubmit }: Props) {
-  const insets = useSafeAreaInsets();
   const isFixedDefault = task ? Boolean(task.fixed_start_iso) : defaultMode === 'fixed';
   const heading = task
     ? isFixedDefault
@@ -52,22 +40,9 @@ export function TaskSheet({ visible, task, defaultMode = 'edf', formKey, onClose
       : 'Thêm đầu việc mới';
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      {/* Android is edge-to-edge (the window no longer resizes for the keyboard), so pad on both. */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Đóng" />
-        <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]} role="dialog" aria-modal>
-          <View style={styles.grabber} />
-          <View style={styles.header}>
-            <Text style={styles.title}>{heading}</Text>
-            <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Đóng" hitSlop={8}>
-              <Icon name="close" size={14} color={colors.textSecondary} strokeWidth={2.4} />
-            </Pressable>
-          </View>
-          <TaskForm key={formKey} task={task} defaultMode={defaultMode} onClose={onClose} onSubmit={onSubmit} />
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    <BottomSheet visible={visible} title={heading} onClose={onClose}>
+      <TaskForm key={formKey} task={task} defaultMode={defaultMode} onClose={onClose} onSubmit={onSubmit} />
+    </BottomSheet>
   );
 }
 
@@ -82,6 +57,22 @@ function initialFixedStart(task: Task | null): Date {
   const next = new Date(Date.now() + 3600000);
   next.setMinutes(0, 0, 0);
   return next;
+}
+
+const sameInstant = (iso: string | null | undefined, d: Date) => !!iso && new Date(iso).getTime() === d.getTime();
+
+/** True when saving the form would change the stored task (so "Lưu" is worth enabling). */
+function isTaskChanged(
+  task: Task,
+  form: { mode: 'edf' | 'fixed'; title: string; deadline: Date; fixedStart: Date; minutes: number },
+): boolean {
+  if (task.needs_confirmation) return true; // saving confirms the deadline
+  if (form.title.trim() !== task.title) return true;
+  if (form.minutes !== (task.estimated_minutes || 60)) return true;
+  if ((form.mode === 'fixed') !== Boolean(task.fixed_start_iso)) return true;
+  return form.mode === 'fixed'
+    ? !sameInstant(task.fixed_start_iso, form.fixedStart)
+    : !sameInstant(task.deadline_iso, form.deadline);
 }
 
 function TaskForm({
@@ -99,7 +90,8 @@ function TaskForm({
   const [minutes, setMinutes] = useState(() => task?.estimated_minutes || 60);
 
   const durationOptions = DURATIONS.includes(minutes) ? DURATIONS : [...DURATIONS, minutes].sort((a, b) => a - b);
-  const canSave = title.trim().length > 0;
+  const canSave =
+    title.trim().length > 0 && (!task || isTaskChanged(task, { mode, title, deadline, fixedStart, minutes }));
 
   const submit = () => {
     if (!canSave) return;
@@ -198,29 +190,6 @@ function TaskForm({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 8,
-    paddingHorizontal: 18,
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-    maxHeight: '90%',
-  },
-  grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 10 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  title: { fontSize: 16, fontFamily: fonts.bold, color: colors.text },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.subtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   body: { gap: 14 },
   group: { gap: 6 },
   label: { fontSize: 12, fontFamily: fonts.semibold, color: colors.textSecondary },

@@ -16,7 +16,10 @@ export type IconName =
   | 'eye-off'
   | 'close'
   | 'plus'
-  | 'external';
+  | 'external'
+  | 'chevron-down'
+  | 'chevron-right'
+  | 'chevron-left';
 
 interface Props {
   name: IconName;
@@ -136,6 +139,12 @@ function renderIcon(name: IconName, p: object) {
           <Line x1="5" y1="12" x2="19" y2="12" {...p} />
         </>
       );
+    case 'chevron-down':
+      return <Polyline points="6 9 12 15 18 9" {...p} />;
+    case 'chevron-right':
+      return <Polyline points="9 18 15 12 9 6" {...p} />;
+    case 'chevron-left':
+      return <Polyline points="15 18 9 12 15 6" {...p} />;
     case 'external':
       return (
         <>

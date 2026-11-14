@@ -1,3 +1,14 @@
+/** A user-defined weekly free-time window (Cài đặt → Khung giờ rảnh). */
+export interface FreeSlot {
+  id: string;
+  /** Date#getDay values (0 = Sunday). */
+  days: number[];
+  start: string; // HH:mm
+  end: string; // HH:mm, later the same day
+  enabled: boolean;
+}
+
+/** v2.2 fixed toggles — only read when migrating old saved settings. */
 export type SlotKey = 'weekday-eve' | 'sat-morn' | 'sat-aft' | 'sun-morn' | 'sun-aft';
 export type SlotMap = Record<SlotKey, boolean>;
 

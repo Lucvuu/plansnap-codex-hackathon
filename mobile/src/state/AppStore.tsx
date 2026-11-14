@@ -4,12 +4,12 @@ import { AppState } from 'react-native';
 
 import { useToast } from '@/components/Toast';
 import { clarifyOptionIso, formatClarifyOptionLabel } from '@/lib/format';
-import { DEFAULT_MODEL, hasUsableKey } from '@/lib/gemini';
+import { GEMINI_API_KEY, GEMINI_MODEL, HAS_GEMINI_KEY } from '@/lib/config';
 import { loadSampleImages } from '@/lib/samples';
 import { scheduleTasks } from '@/lib/scheduler';
-import { DEFAULT_SLOTS, getEnabledSlotDefs } from '@/lib/slots';
+import { DEFAULT_FREE_SLOTS, getEnabledSlotDefs } from '@/lib/slots';
 import * as storage from '@/lib/storage';
-import type { CapturedImage, PresetType, ScheduledEvent, SlotKey, SlotMap, Task } from '@/lib/types';
+import type { CapturedImage, FreeSlot, PresetType, ScheduledEvent, Task } from '@/lib/types';
 import * as VisionAgent from '@/lib/vision-agent';
 
 export const MAX_IMAGES = 5;
@@ -27,9 +27,7 @@ interface AppStore {
   images: CapturedImage[];
   tasks: Task[];
   schedule: ScheduledEvent[];
-  apiKey: string;
-  model: string;
-  slots: SlotMap;
+  slots: FreeSlot[];
   hasKey: boolean;
   pendingCount: number;
   isScanning: boolean;
@@ -48,9 +46,10 @@ interface AppStore {
   /** Returns false when the chosen option carries no usable date. */
   resolveClarification: (taskId: string, optionIndex: number) => boolean;
 
-  saveApiSettings: (apiKey: string, model: string) => Promise<void>;
-  testApiKey: (apiKey: string, model: string) => Promise<string | null>;
-  toggleSlot: (key: SlotKey) => void;
+  toggleSlot: (id: string) => void;
+  /** Adds the window, or replaces the one with the same id. */
+  saveSlot: (slot: FreeSlot) => void;
+  deleteSlot: (id: string) => void;
   clearAll: () => Promise<void>;
 }
 
@@ -67,9 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [images, setImages] = useState<CapturedImage[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState(DEFAULT_MODEL);
-  const [slots, setSlots] = useState<SlotMap>({ ...DEFAULT_SLOTS });
+  const [slots, setSlots] = useState<FreeSlot[]>(DEFAULT_FREE_SLOTS);
   const [isScanning, setIsScanning] = useState(false);
   const [lastTab, setLastTab] = useState<storage.TabPath>('/');
   // Bumped when the app returns to the foreground so the schedule re-anchors to "now".
@@ -83,8 +80,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .then((saved) => {
         if (cancelled) return;
         setTasks(saved.tasks);
-        setApiKey(saved.apiKey);
-        setModel(saved.model);
         setSlots(saved.slots);
         setLastTab(saved.lastTab);
       })
@@ -114,7 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [tasks, slots, clock],
   );
   const pendingCount = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks]);
-  const hasKey = Boolean(apiKey.trim());
+  const hasKey = HAS_GEMINI_KEY;
 
   const touchClock = useCallback(() => setClock(Date.now()), []);
 
@@ -156,7 +151,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!source.length || isScanning) return false;
     setIsScanning(true);
     try {
-      const result = await VisionAgent.extractTasks(source, apiKey, model);
+      const result = await VisionAgent.extractTasks(source, GEMINI_API_KEY, GEMINI_MODEL);
       const newTasks = result.tasks.map((t) => ({ ...t, completed: Boolean(t.completed) }));
       if (newTasks.length === 0) {
         // FR-2.1: an image without tasks yields nothing — say so instead of "added 0".
@@ -182,7 +177,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       touchClock();
       const sec = (result.elapsedMs / 1000).toFixed(1);
       toast(
-        hasUsableKey(apiKey)
+        HAS_GEMINI_KEY
           ? `Đã thêm ${newTasks.length} đầu việc (${sec}s · ${result.modelUsed})`
           : `Demo: đã thêm ${newTasks.length} đầu việc (${sec}s)`,
         'success',
@@ -194,7 +189,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsScanning(false);
     }
-  }, [images, isScanning, apiKey, model, toast, touchClock]);
+  }, [images, isScanning, toast, touchClock]);
 
   // ---- Tasks ----------------------------------------------------------------
   const toggleTask = useCallback((id: string) => {
@@ -269,45 +264,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // ---- Settings -------------------------------------------------------------
-  const saveApiSettings = useCallback(
-    async (key: string, nextModel: string) => {
-      const trimmed = key.trim();
-      await storage.saveApiSettings(trimmed, nextModel);
-      setApiKey(trimmed);
-      setModel(nextModel);
-      toast(trimmed ? 'Đã lưu API Key và Model.' : 'Đã chuyển về chế độ Demo.', 'success');
-    },
-    [toast],
-  );
-
-  /** Returns the model that answered, or null on failure. Saves the key on success. */
-  const testApiKey = useCallback(
-    async (key: string, preferredModel: string) => {
-      const trimmed = key.trim();
-      if (!trimmed) {
-        toast('Vui lòng nhập Gemini API Key trước.', 'warning');
-        return null;
-      }
-      try {
-        const res = await VisionAgent.testApiKey(trimmed, preferredModel);
-        await storage.saveApiSettings(trimmed, res.model);
-        setApiKey(trimmed);
-        setModel(res.model);
-        toast(`Kết nối thành công (${res.model} · ${(res.elapsedMs / 1000).toFixed(2)}s)!`, 'success');
-        return res.model;
-      } catch (err) {
-        toast(`Kết nối thất bại: ${(err as Error).message}`, 'error');
-        return null;
-      }
-    },
-    [toast],
-  );
-
   const toggleSlot = useCallback(
-    (key: SlotKey) => {
-      setSlots((prev) => ({ ...prev, [key]: !prev[key] }));
+    (id: string) => {
+      setSlots((prev) => prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)));
       touchClock();
       toast('Đã cập nhật lịch theo khung giờ mới.', 'info');
+    },
+    [toast, touchClock],
+  );
+
+  const saveSlot = useCallback(
+    (slot: FreeSlot) => {
+      setSlots((prev) =>
+        prev.some((s) => s.id === slot.id) ? prev.map((s) => (s.id === slot.id ? slot : s)) : [...prev, slot],
+      );
+      touchClock();
+      toast('Đã lưu khung giờ rảnh.', 'success');
+    },
+    [toast, touchClock],
+  );
+
+  const deleteSlot = useCallback(
+    (id: string) => {
+      setSlots((prev) => prev.filter((s) => s.id !== id));
+      touchClock();
+      toast('Đã xóa khung giờ rảnh.', 'info');
     },
     [toast, touchClock],
   );
@@ -316,9 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await storage.clearAllData();
     setImages([]);
     setTasks([]);
-    setApiKey('');
-    setModel(DEFAULT_MODEL);
-    setSlots({ ...DEFAULT_SLOTS });
+    setSlots(DEFAULT_FREE_SLOTS);
     toast('Đã xóa toàn bộ dữ liệu cục bộ.', 'info');
   }, [toast]);
 
@@ -327,8 +306,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     images,
     tasks,
     schedule,
-    apiKey,
-    model,
     slots,
     hasKey,
     pendingCount,
@@ -342,9 +319,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTask,
     upsertTask,
     resolveClarification,
-    saveApiSettings,
-    testApiKey,
     toggleSlot,
+    saveSlot,
+    deleteSlot,
     clearAll,
   };
 

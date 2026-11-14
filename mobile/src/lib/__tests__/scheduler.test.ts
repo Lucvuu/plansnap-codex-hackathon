@@ -6,8 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 import { buildHandwrittenDemoTask, buildStudentDemoTasks } from '../demo-tasks.ts';
 import { scheduleTasks } from '../scheduler.ts';
-import { DEFAULT_SLOTS, getEnabledSlotDefs, SLOT_OPTIONS } from '../slots.ts';
-import type { SlotMap, Task } from '../types.ts';
+import { DEFAULT_FREE_SLOTS, getEnabledSlotDefs, migrateLegacySlots } from '../slots.ts';
+import type { SlotKey, SlotMap, Task } from '../types.ts';
+
+// v2.2 toggle keys, in the order the PWA lists them.
+const LEGACY_KEYS: SlotKey[] = ['weekday-eve', 'sat-morn', 'sat-aft', 'sun-morn', 'sun-aft'];
+const ALL_ON = Object.fromEntries(LEGACY_KEYS.map((key) => [key, true])) as SlotMap;
 
 // Load the original PWA scheduler (app/js/scheduler.js) in this realm for parity checks.
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -36,12 +40,12 @@ function mulberry32(seed: number) {
   };
 }
 
-test('slot expansion matches the PWA for every toggle combination', () => {
+test('migrated v2.2 toggles expand exactly like the PWA for every combination', () => {
   for (let mask = 0; mask < 32; mask++) {
-    const slots = Object.fromEntries(SLOT_OPTIONS.map((o, i) => [o.key, Boolean(mask & (1 << i))])) as SlotMap;
+    const slots = Object.fromEntries(LEGACY_KEYS.map((key, i) => [key, Boolean(mask & (1 << i))])) as SlotMap;
     const sortKey = (d: { day: number; start: string }) => `${d.day}-${d.start}`;
     assert.deepEqual(
-      getEnabledSlotDefs(slots).map(sortKey).sort(),
+      getEnabledSlotDefs(migrateLegacySlots(slots)).map(sortKey).sort(),
       pwaSlotDefs(slots).map(sortKey).sort(),
     );
   }
@@ -65,9 +69,9 @@ test('scheduleTasks is identical to the PWA scheduler on 500 random scenarios', 
         fixed_start_iso: rand() < 0.15 ? new Date(ref.getTime() + rand() * 10 * 86400000).toISOString() : undefined,
       };
     });
-    const slots = Object.fromEntries(SLOT_OPTIONS.map((o) => [o.key, rand() < 0.75])) as SlotMap;
+    const slots = Object.fromEntries(LEGACY_KEYS.map((key) => [key, rand() < 0.75])) as SlotMap;
 
-    const ours = scheduleTasks(tasks, getEnabledSlotDefs(slots), ref);
+    const ours = scheduleTasks(tasks, getEnabledSlotDefs(migrateLegacySlots(slots)), ref);
     const theirs = JSON.parse(JSON.stringify(pwa.schedule(tasks, pwaSlotDefs(slots), ref)));
 
     assert.deepEqual(ours, theirs, `scenario ${scenario} diverged`);
@@ -88,8 +92,8 @@ test('fragmented windows never produce "Phiên 3/2" and match PWA balanced split
     { id: 'slide', title: 'Slide', deadline_iso: new Date(2026, 10, 17, 8, 0).toISOString(), estimated_minutes: 120 },
     { id: 'essay', title: 'Essay', deadline_iso: new Date(2026, 10, 20, 17, 0).toISOString(), estimated_minutes: 180 },
   ];
-  const essay = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now).filter((e) => e.taskId === 'essay');
-  const pwaEssay = pwa.schedule(tasks, pwaSlotDefs(DEFAULT_SLOTS), now).filter((e: any) => e.taskId === 'essay');
+  const essay = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_FREE_SLOTS), now).filter((e) => e.taskId === 'essay');
+  const pwaEssay = pwa.schedule(tasks, pwaSlotDefs(ALL_ON), now).filter((e: any) => e.taskId === 'essay');
   assert.deepEqual(pwaEssay.map((e: any) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2']);
   assert.deepEqual(essay.map((e) => `${e.sessionIndex}/${e.totalSessions}`), ['1/2', '2/2']);
 });
@@ -122,7 +126,7 @@ test('EDF sessions never overlap a fixed-time event (FR-3.3)', () => {
     { id: 'meet', title: 'Họp nhóm', deadline_iso: null, fixed_start_iso: new Date(2026, 10, 16, 20, 0).toISOString(), estimated_minutes: 60 },
     { id: 'essay', title: 'Essay', deadline_iso: new Date(2026, 10, 20, 17, 0).toISOString(), estimated_minutes: 180 },
   ];
-  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now);
+  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_FREE_SLOTS), now);
   const meet = events.find((e) => e.taskId === 'meet')!;
   const sessions = events.filter((e) => e.taskId === 'essay');
   assert.equal(sessions.reduce((sum, e) => sum + e.durationMinutes, 0), 180);
@@ -136,7 +140,7 @@ test('EDF sessions never overlap a fixed-time event (FR-3.3)', () => {
 test('demo pack schedules the two clear tasks and holds back the ambiguous one', () => {
   const now = new Date(2026, 10, 14, 13, 0); // Saturday 14/11/2026 13:00
   const tasks = buildStudentDemoTasks(now);
-  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_SLOTS), now);
+  const events = scheduleTasks(tasks, getEnabledSlotDefs(DEFAULT_FREE_SLOTS), now);
   const scheduledTaskIds = new Set(events.map((e) => e.taskId));
   assert.equal(scheduledTaskIds.size, 2);
   assert.ok(!scheduledTaskIds.has(tasks[0].id), 'needs_confirmation task must not be scheduled');

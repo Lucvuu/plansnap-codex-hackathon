@@ -53,17 +53,6 @@ async function callWithFallback(apiKey: string, preferredModel: string, body: un
   throw lastErr ?? new Error('Không thể kết nối Gemini API.');
 }
 
-export async function testApiKey(apiKey: string, model = DEFAULT_MODEL) {
-  const t0 = Date.now();
-  const { model: used } = await callWithFallback(
-    apiKey.trim(),
-    model,
-    { contents: [{ parts: [{ text: 'OK' }] }] },
-    100,
-  );
-  return { model: used, elapsedMs: Date.now() - t0 };
-}
-
 async function ensureBase64(img: CapturedImage): Promise<{ mimeType: string; data: string }> {
   if (img.base64) return { mimeType: img.mimeType || 'image/jpeg', data: img.base64 };
   const compressed = await compressImage(img.uri);
