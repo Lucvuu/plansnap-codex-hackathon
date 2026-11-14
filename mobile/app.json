@@ -54,6 +54,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "054f3f80-63ff-470c-835e-50f526a0f7ed"
+      }
+    },
+    "owner": "elysszxje"
   }
 }
