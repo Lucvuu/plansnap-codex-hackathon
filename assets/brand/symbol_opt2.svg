@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Top Photo Card (Source Notification Photo) -->
+  <path d="M 240 220 L 640 220 L 784 364 L 784 520 L 240 520 Z" fill="none" stroke="currentColor" stroke-width="64" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Folded Dog-ear Corner of Photo -->
+  <path d="M 640 220 L 640 364 L 784 364" fill="none" stroke="currentColor" stroke-width="64" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Focus / Capture indicator inside photo -->
+  <circle cx="440" cy="370" r="48" fill="currentColor"/>
+  
+  <!-- Bottom Calendar Slot (Structured Work Block) -->
+  <rect x="240" y="600" width="544" height="204" rx="44" fill="currentColor"/>
+  <!-- Time slot accent (negative space) -->
+  <rect x="300" y="664" width="160" height="76" rx="20" fill="#F5F5F7" class="neg-space"/>
+  <rect x="500" y="682" width="220" height="40" rx="20" fill="#F5F5F7" class="neg-space"/>
+</svg>

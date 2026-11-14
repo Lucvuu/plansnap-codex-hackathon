@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Viewfinder Frame (Snap) -->
+  <g fill="none" stroke="currentColor" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Top-Left -->
+    <path d="M 320 192 L 208 192 A 16 16 0 0 0 192 208 L 192 320"/>
+    <!-- Top-Right -->
+    <path d="M 704 192 L 816 192 A 16 16 0 0 1 832 208 L 832 320"/>
+    <!-- Bottom-Left -->
+    <path d="M 192 704 L 192 816 A 16 16 0 0 0 208 832 L 320 832"/>
+    <!-- Bottom-Right -->
+    <path d="M 832 704 L 832 816 A 16 16 0 0 1 816 832 L 704 832"/>
+  </g>
+  
+  <!-- Calendar Pad Base (Plan) -->
+  <rect x="296" y="296" width="432" height="432" rx="64" fill="currentColor"/>
+  
+  <!-- Negative Space: Header Divider Gap -->
+  <rect x="296" y="416" width="432" height="32" fill="#F5F5F7" class="neg-space"/>
+  
+  <!-- Negative Space: Central Target Date Block / Active Day Window -->
+  <rect x="424" y="504" width="176" height="136" rx="28" fill="#F5F5F7" class="neg-space"/>
+</svg>

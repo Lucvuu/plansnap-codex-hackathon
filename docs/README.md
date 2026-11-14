@@ -1,4 +1,6 @@
 ﻿# BỘ TÀI LIỆU DỰ ÁN HACKATHON: PlanSnap (Capture → Plan)
+
+**Task 01 hiện hành.** [PRD bàn giao kỹ thuật](research/PlanSnap-Task-01-PRD-Final.md) · [Ảnh test Android](research/android-calendar-test/README.md) · [Kế hoạch KPI và P&L](research/PlanSnap-Pain-Point-va-Ke-hoach-Kinh-doanh.md)
 **Đội thi:** technoComplex  
 **Sự kiện:** Codex Community Hackathon – Hà Nội (Thứ Bảy, 14/11/2026)  
 **Trạng thái:** Hoàn thiện trọn bộ 12 tài liệu chuẩn mực quản trị & kỹ thuật (v2.0 Production)  

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Vertical Stem & Top Framing Shoulder -->
+  <path d="M 320 832 L 320 256 A 64 64 0 0 1 384 192 L 600 192" fill="none" stroke="currentColor" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Loop of P with Calendar Focus Pin -->
+  <path d="M 600 192 C 730 192 780 280 780 380 C 780 480 730 568 600 568 L 320 568" fill="none" stroke="currentColor" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Clock / Pin marker inside the P loop -->
+  <circle cx="560" cy="380" r="56" fill="currentColor"/>
+  <!-- Bottom focus bracket marker -->
+  <path d="M 720 720 L 800 720 A 16 16 0 0 1 816 736 L 816 816" fill="none" stroke="currentColor" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

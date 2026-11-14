@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="psBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="psSurface" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1E3A8A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- Viewfinder Frame (Snap) -->
+  <!-- Top-Left -->
+  <path d="M 160 108 L 124 108 A 20 20 0 0 0 104 128 L 104 164" fill="none" stroke="#2563EB" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Top-Right -->
+  <path d="M 352 108 L 388 108 A 20 20 0 0 1 408 128 L 408 164" fill="none" stroke="#2563EB" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Bottom-Left -->
+  <path d="M 104 348 L 104 384 A 20 20 0 0 0 124 404 L 160 404" fill="none" stroke="#2563EB" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Bottom-Right -->
+  <path d="M 408 348 L 408 384 A 20 20 0 0 1 388 404 L 352 404" fill="none" stroke="#2563EB" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Calendar Date Block (Plan) -->
+  <g filter="url(#subtleShadow)">
+    <!-- Binder Loops -->
+    <rect x="196" y="146" width="18" height="34" rx="9" fill="#1D4ED8"/>
+    <rect x="298" y="146" width="18" height="34" rx="9" fill="#1D4ED8"/>
+
+    <!-- Calendar Body -->
+    <rect x="150" y="166" width="212" height="188" rx="24" fill="url(#psSurface)" stroke="#E2E8F0" stroke-width="4"/>
+
+    <!-- Calendar Header Stripe -->
+    <path d="M 152 190 A 22 22 0 0 1 174 168 L 338 168 A 22 22 0 0 1 360 190 L 360 216 L 152 216 Z" fill="url(#psBlue)"/>
+
+    <!-- Schedule Grid / Checkmark Marker -->
+    <!-- Small schedule dots/bars -->
+    <rect x="184" y="240" width="38" height="12" rx="6" fill="#93C5FD"/>
+    <rect x="234" y="240" width="94" height="12" rx="6" fill="#E2E8F0"/>
+    
+    <!-- Scheduled Event Block (Confirmed - Green) -->
+    <rect x="184" y="266" width="144" height="48" rx="12" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="2"/>
+    <circle cx="208" cy="290" r="10" fill="#059669"/>
+    <!-- Checkmark inside event -->
+    <path d="M 203 290 L 207 294 L 214 286" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="228" y="284" width="82" height="12" rx="6" fill="#059669" fill-opacity="0.85"/>
+  </g>
+</svg>

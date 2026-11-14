@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "PlanSnap",
+    "slug": "plansnap",
+    "version": "2.2.0",
+    "scheme": "plansnap",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#f5f5f7",
+    "ios": {
+      "bundleIdentifier": "com.technocomplex.plansnap",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.technocomplex.plansnap",
+      "adaptiveIcon": {
+        "backgroundColor": "#2563eb",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PlanSnap cần truy cập thư viện ảnh để đọc ảnh chụp thông báo bài tập.",
+          "cameraPermission": "PlanSnap cần dùng máy ảnh để chụp ghi chú và thông báo bài tập.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-sharing",
+      "expo-secure-store",
+      "expo-asset",
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#f5f5f7"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ec4fffd1-6576-4657-918c-cbaadfbe4ee5"
+      }
+    },
+    "owner": "elysszxjes-team"
+  }
+}
