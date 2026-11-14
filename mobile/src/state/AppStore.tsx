@@ -14,6 +14,12 @@ import * as VisionAgent from '@/lib/vision-agent';
 
 export const MAX_IMAGES = 5;
 
+/** Result of a successful scan: how many tasks were added and how many still need a deadline check. */
+export interface ExtractionOutcome {
+  added: number;
+  needsReview: number;
+}
+
 export interface TaskInput {
   id?: string;
   title: string;
@@ -30,6 +36,8 @@ interface AppStore {
   slots: FreeSlot[];
   hasKey: boolean;
   pendingCount: number;
+  /** Incomplete tasks whose deadline is ambiguous and must be confirmed (Smart Review). */
+  reviewCount: number;
   isScanning: boolean;
   /** Tab that was open when the app was last closed (restored on launch). */
   lastTab: storage.TabPath;
@@ -37,14 +45,22 @@ interface AppStore {
   addImages: (images: CapturedImage[]) => void;
   removeImage: (id: string) => void;
   loadPreset: (type: PresetType) => Promise<void>;
-  /** Extracts tasks from the staged images, or from `direct` (camera challenge) without staging. */
-  runExtraction: (direct?: CapturedImage[]) => Promise<boolean>;
+  /**
+   * Extracts tasks from the staged images, or from `direct` (camera challenge) without staging.
+   * Resolves to null when nothing was added (error / no tasks found — a toast already explained it).
+   */
+  runExtraction: (direct?: CapturedImage[]) => Promise<ExtractionOutcome | null>;
 
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   upsertTask: (input: TaskInput) => void;
   /** Returns false when the chosen option carries no usable date. */
   resolveClarification: (taskId: string, optionIndex: number) => boolean;
+  /**
+   * Smart Review "1 chạm": confirm many ambiguous deadlines at once. `choices` maps task id → chosen
+   * option index; tasks whose option has no usable date are skipped. Returns how many were confirmed.
+   */
+  resolveClarifications: (choices: Record<string, number>) => number;
 
   toggleSlot: (id: string) => void;
   /** Adds the window, or replaces the one with the same id. */
@@ -109,6 +125,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [tasks, slots, clock],
   );
   const pendingCount = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks]);
+  const reviewCount = useMemo(() => tasks.filter((t) => !t.completed && t.needs_confirmation).length, [tasks]);
   const hasKey = HAS_GEMINI_KEY;
 
   const touchClock = useCallback(() => setClock(Date.now()), []);
@@ -148,7 +165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const runExtraction = useCallback(async (direct?: CapturedImage[]) => {
     const source = direct ?? images;
-    if (!source.length || isScanning) return false;
+    if (!source.length || isScanning) return null;
     setIsScanning(true);
     try {
       const result = await VisionAgent.extractTasks(source, GEMINI_API_KEY, GEMINI_MODEL);
@@ -156,7 +173,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (newTasks.length === 0) {
         // FR-2.1: an image without tasks yields nothing — say so instead of "added 0".
         toast('Không tìm thấy đầu việc hay hạn chót nào trong ảnh.', 'warning');
-        return false;
+        return null;
       }
       setTasks((prev) => {
         const merged = [...prev];
@@ -175,17 +192,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       if (!direct) setImages([]);
       touchClock();
-      const sec = (result.elapsedMs / 1000).toFixed(1);
+      // v2 "anti-AI-slop": no benchmark seconds or model ids in the UI.
+      const needsReview = newTasks.filter((t) => !t.completed && t.needs_confirmation).length;
       toast(
-        HAS_GEMINI_KEY
-          ? `Đã thêm ${newTasks.length} đầu việc (${sec}s · ${result.modelUsed})`
-          : `Demo: đã thêm ${newTasks.length} đầu việc (${sec}s)`,
+        HAS_GEMINI_KEY ? `Đã thêm ${newTasks.length} đầu việc` : `Bản demo: đã thêm ${newTasks.length} đầu việc mẫu`,
         'success',
       );
-      return true;
+      return { added: newTasks.length, needsReview };
     } catch (err) {
-      toast(`Lỗi AI: ${(err as Error).message}`, 'error');
-      return false;
+      toast(`Không đọc được ảnh: ${(err as Error).message}`, 'error');
+      return null;
     } finally {
       setIsScanning(false);
     }
@@ -263,6 +279,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [tasks, toast, touchClock],
   );
 
+  const resolveClarifications = useCallback(
+    (choices: Record<string, number>) => {
+      const resolved = new Map<string, string>();
+      for (const t of tasks) {
+        if (t.completed || !t.needs_confirmation || !(t.id in choices)) continue;
+        const opts = t.options || t.clarification_options || [];
+        const iso = clarifyOptionIso(opts[choices[t.id]]);
+        if (iso) resolved.set(t.id, iso);
+      }
+      if (resolved.size === 0) return 0;
+      setTasks((prev) =>
+        prev.map((t) => (resolved.has(t.id) ? { ...t, deadline_iso: resolved.get(t.id)!, needs_confirmation: false } : t)),
+      );
+      touchClock();
+      toast(`Đã chốt ${resolved.size} hạn chót và xếp vào lịch.`, 'success');
+      return resolved.size;
+    },
+    [tasks, toast, touchClock],
+  );
+
   // ---- Settings -------------------------------------------------------------
   const toggleSlot = useCallback(
     (id: string) => {
@@ -309,6 +345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     slots,
     hasKey,
     pendingCount,
+    reviewCount,
     isScanning,
     lastTab,
     addImages,
@@ -319,6 +356,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTask,
     upsertTask,
     resolveClarification,
+    resolveClarifications,
     toggleSlot,
     saveSlot,
     deleteSlot,

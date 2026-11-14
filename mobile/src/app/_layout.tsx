@@ -1,8 +1,9 @@
-// Per-weight imports keep the other 14 font files out of the bundle.
+// Per-weight imports keep the other 13 font files out of the bundle.
 import { BeVietnamPro_400Regular } from '@expo-google-fonts/be-vietnam-pro/400Regular';
 import { BeVietnamPro_500Medium } from '@expo-google-fonts/be-vietnam-pro/500Medium';
 import { BeVietnamPro_600SemiBold } from '@expo-google-fonts/be-vietnam-pro/600SemiBold';
 import { BeVietnamPro_700Bold } from '@expo-google-fonts/be-vietnam-pro/700Bold';
+import { BeVietnamPro_800ExtraBold } from '@expo-google-fonts/be-vietnam-pro/800ExtraBold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -24,6 +25,7 @@ function Root() {
     BeVietnamPro_500Medium,
     BeVietnamPro_600SemiBold,
     BeVietnamPro_700Bold,
+    BeVietnamPro_800ExtraBold,
   });
   const ready = hydrated && (fontsLoaded || !!fontError);
 
@@ -36,7 +38,13 @@ function Root() {
   return (
     <View style={styles.frame}>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        <Stack.Screen name="(tabs)" />
+        {/* Smart Review: 1-tap confirmation of ambiguous deadlines, pushed after a scan. */}
+        <Stack.Screen name="review" options={{ animation: 'slide_from_right' }} />
+        {/* Settings & free-time windows, opened from the gear in screen headers. */}
+        <Stack.Screen name="settings" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      </Stack>
     </View>
   );
 }

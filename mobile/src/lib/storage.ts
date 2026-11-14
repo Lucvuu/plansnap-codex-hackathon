@@ -17,7 +17,7 @@ const KEYS = {
 } as const;
 
 /** Tab routes that can be restored after the app is killed and reopened. */
-export const TAB_PATHS = ['/', '/tasks', '/schedule', '/settings'] as const;
+export const TAB_PATHS = ['/', '/tasks', '/schedule'] as const;
 export type TabPath = (typeof TAB_PATHS)[number];
 
 export interface PersistedState {
